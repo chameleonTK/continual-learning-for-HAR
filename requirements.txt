@@ -28,3 +28,4 @@ tqdm==4.32.1
 urllib3==1.25.3
 visdom==0.1.8.8
 websocket-client==0.56.0
+imblearn

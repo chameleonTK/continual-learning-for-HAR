@@ -33,8 +33,8 @@ class GenerativeReplayLearner():
         self.generator_noise = args.generator_noise
 
     
-    def set_solver(self, solver):
-        self.previous_solver = None
+    def set_solver(self, solver, previous_solver=None):
+        self.previous_solver = previous_solver
         self.solver = solver
         self.solver.ewc = self.solver_ewc
         self.solver.distill = self.solver_distill
@@ -127,6 +127,7 @@ class GenerativeReplayLearner():
             
             scores = None
             if self.previous_solver is not None:
+                
                 with torch.no_grad():
                     scores = self.previous_solver(x)
                     scores = scores[:, prev_active_classes]
@@ -163,7 +164,7 @@ class GenerativeReplayLearner():
         # Close progres-bar(s)
         progress.close()
 
-
+        
         previous_model = copy.deepcopy(model).eval()
         self.previous_solver = previous_model
         
