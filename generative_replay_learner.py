@@ -111,7 +111,7 @@ class GenerativeReplayLearner():
         progress = tqdm.tqdm(range(1, iters+1))
         for batch_index in range(1, iters+1):
 
-            # Update # iters left on current data-loader(s) and, if needed, create new one(s)
+        #     # Update # iters left on current data-loader(s) and, if needed, create new one(s)
             iters_left -= 1
             replayed_iters_left -= 1
             if iters_left==0:
@@ -130,6 +130,7 @@ class GenerativeReplayLearner():
                 
                 with torch.no_grad():
                     scores = self.previous_solver(x)
+                    scores = scores.cpu()
                     scores = scores[:, prev_active_classes]
 
 
@@ -144,6 +145,7 @@ class GenerativeReplayLearner():
                 if self.previous_solver is not None:
                     with torch.no_grad():
                         scores_ = self.previous_solver(x_)
+                        scores_ = scores_.cpu()
                         scores_ = scores_[:, prev_active_classes]
                          
 

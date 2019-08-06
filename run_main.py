@@ -45,12 +45,13 @@ def save_order(result_folder, task_order, tasks):
     fout.close()
 
 def save_model(result_folder, identity, model, model_type):
-    # name = "t{task_order}-m{method}-{type}.model".format(
-    #     task_order=identity["task_order"],
-    #     method=identity["method"],
-    #     type=model_type)
+    name = "t{task_order}-m{method}{c}-{type}.model".format(
+        task_order=identity["task_order"],
+        method=identity["method"],
+        type=model_type,
+        c=identity["cmd"])
 
-    # model.save_model("results_two_datasets.s4/models/"+name)
+    model.save_model(result_folder+name)
     pass
 
 
@@ -141,7 +142,7 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
                     continue
                 
                 newmodel = model.solver.add_output_units(len(train_dataset.classes))
-                model.set_solver(newmodel, model.solver)
+                model.set_solver(newmodel, None)
 
             model.train_solver(None, all_data, None)
             result = model.test(None, test_datasets, verbose=verbose)
@@ -232,6 +233,29 @@ def clearup_tmp_file(result_folder, ntask, methods, delete=True):
 
     fresult.close()
 
+def select_dataset(args):
+    if args.data_dir == "pamap":
+        classes = ['lying', 'sitting', 'standing', 'ironing', 'vacuum cleaning', 'ascending stairs', 'walking', 'descending stairs', 'cycling', 'running']
+        args.data_dir = "./Dataset/Dataset_PerCom18_STL/pamap.feat"
+    else:
+        classes = [
+            "R1_work_at_computer",
+            "R2_work_at_computer",
+            "R1_sleep",
+            "R2_sleep",
+            "R1_bed_to_toilet",
+            "R2_bed_to_toilet",
+
+            "R2_prepare_dinner",
+            "R2_watch_TV",
+            
+            "R2_prepare_lunch",
+            "R1_work_at_dining_room_table",
+        ]
+        args.data_dir = "./Dataset/twor.2009/annotated.feat.ch5"
+    
+    return SmartHomeDataset(args.data_dir, classes=classes)
+
 if __name__ == "__main__":
 
     parser = arg_params.get_parser()
@@ -241,43 +265,27 @@ if __name__ == "__main__":
 
     result_folder = args.results_dir
 
-
-    # args.data_dir = "../../Data/twor.2009/annotated.feat.ch5"
-
     print("\n")
     print("STEP1: load datasets")
 
-    base_dataset = SmartHomeDataset(args.data_dir)
-    if args.oversampling:
-        print("Oversampling")
-        
-        oversamp_dataset = base_dataset.resampling()
+    base_dataset = select_dataset(args)
+    
 
 
-    methods = [
-        # ("offline", 0),
-        # ("none", 0),
-        # ("exact", 0),
-        # ("mp-gan", 0),
-        # ("mp-wgan", 0),
-        # ("sg-cgan", 0),
-        # ("sg-cwgan", 0),
-        ("lwf", 0),
-        # ("ewc", 0),
+    methods = [ 
+        ("offline", 0), ("none", 0), ("exact", 0), ("mp-gan", 0), ("mp-wgan", 0), ("sg-cgan", 0), ("sg-cwgan", 0), ("lwf", 0), ("ewc", 0),
+        ("offline", 1), ("none", 1), ("exact", 1), ("mp-gan", 1), ("mp-wgan", 1), ("sg-cgan", 1), ("sg-cwgan", 1), ("lwf", 1), ("ewc", 1),
+        ("offline", 2), ("none", 2), ("exact", 2), ("mp-gan", 2), ("mp-wgan", 2), ("sg-cgan", 2), ("sg-cwgan", 2), ("lwf", 2), ("ewc", 2),
+        ("offline", 3), ("none", 3), ("exact", 3), ("mp-gan", 3), ("mp-wgan", 3), ("sg-cgan", 3), ("sg-cwgan", 3), ("lwf", 3), ("ewc", 3),
     ]
 
     jobs = []
     pool = mp.Pool()
     start = time.time()
-    ntask = 1
+    ntask = 10
     for task_order in range(ntask):
-
-        if args.oversampling:
-            dataset = oversamp_dataset
-        else:
-            dataset = base_dataset
         
-        dataset.permu_task_order()
+        base_dataset.permu_task_order()
         identity = {
             "task_order": None,
             "method": None,
@@ -292,8 +300,17 @@ if __name__ == "__main__":
         
         
         identity["task_order"] = task_order
-        save_order(result_folder, task_order, dataset.classes)
-        (train_datasets, test_datasets), config, classes_per_task = dataset.split(tasks=args.tasks)
+        save_order(result_folder, task_order, base_dataset.classes)
+
+        
+        traindata, testdata = base_dataset.train_test_split()
+
+        dataset = traindata
+        if args.oversampling:
+            dataset = traindata.resampling()
+
+        train_datasets, config, classes_per_task = traindata.split(tasks=args.tasks)
+        test_datasets, _, _ = testdata.split(tasks=args.tasks)
 
         print("******* Run ",task_order,"*******")
         print("\n")
@@ -303,6 +320,10 @@ if __name__ == "__main__":
             identity["method"] = m
             args = copy.deepcopy(args)
             
+            args.critic_fc_units = (cmd+1)*1000
+            args.generator_fc_units = (cmd+1)*1000
+
+            # run_model(identity, method, args, config, train_datasets, test_datasets, True)
             pool.apply_async(run_model, args=(identity, method, args, config, train_datasets, test_datasets, True))
             
     pool.close()

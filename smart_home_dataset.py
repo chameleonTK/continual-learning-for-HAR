@@ -68,7 +68,13 @@ class SmartHomeDataset(Dataset):
         
 
     def train_test_split(self):
+
+        
         traindata, testdata = train_test_split(self.pddata, test_size=0.2, random_state=self.random_state)
+
+        traindata = SmartHomeDataset("", rawdata=traindata, classes=self.classes)
+        testdata = SmartHomeDataset("", rawdata=testdata, classes=self.classes)
+
         return (traindata, testdata)
 
     def set_target_tranform(self, transform):
@@ -125,25 +131,18 @@ class SmartHomeDataset(Dataset):
     def split(self, tasks=5):
 
         classes_per_task = int(np.floor(len(self.classes) / tasks))
-        train_datasets = []
-        test_datasets = []
-
-        traindata, testdata = self.train_test_split()
-        traindata = SmartHomeDataset("", rawdata=traindata, classes=self.classes)
-        testdata = SmartHomeDataset("", rawdata=testdata, classes=self.classes)
+        datasets = []
     
         labels_per_task = [
             list(np.array(range(classes_per_task)) + classes_per_task * task_id) for task_id in range(tasks)
         ]
 
         # split them up into sub-tasks
-        train_datasets = []
-        test_datasets = []
+        datasets = []
         for labels in labels_per_task:
-            train_datasets.append(traindata.filter(labels))
-            test_datasets.append(testdata.filter(labels))
+            datasets.append(self.filter(labels))
 
-        return (train_datasets, test_datasets), self.config, classes_per_task
+        return datasets, self.config, classes_per_task
 
     def filter(self, labels):
         classes = [self.classes[l] for l in labels]

@@ -16,6 +16,12 @@ It is an part of [CS5099 Dissertation](https://info.cs.st-andrews.ac.uk/student-
 1. Enter to the env `source env/bin/activate`
 2. Install library `pip install -r requirements.txt`
 
+## Visdom
+
+1. Run `python3 -m visdom.server` in one terminal
+2. Open browser and then enter url given by the visdom server
+1. Open anohter terminal then run your model with `--visdom`
+2. See the interactive report
 
 ### Todos
 * improve accuracy
