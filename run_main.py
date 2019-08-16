@@ -45,13 +45,13 @@ def save_order(result_folder, task_order, tasks):
     fout.close()
 
 def save_model(result_folder, identity, model, model_type):
-    name = "t{task_order}-m{method}{c}-{type}.model".format(
-        task_order=identity["task_order"],
-        method=identity["method"],
-        type=model_type,
-        c=identity["cmd"])
+    # name = "t{task_order}-m{method}{c}-{type}.model".format(
+    #     task_order=identity["task_order"],
+    #     method=identity["method"],
+    #     type=model_type,
+    #     c=identity["cmd"])
 
-    model.save_model(result_folder+name)
+    # model.save_model(result_folder+name)
     pass
 
 
@@ -70,10 +70,16 @@ def save_results(result_folder, identity, results):
             fout.write(",".join(row)+"\n")
     fout.close()
 
+def get_g_iter(method, cmd=None):
+    if method in ["sg-cgan", "sg-cwgan"]:
+        return 5000
+    else:
+        return 1000
 
-
-def run_model(identity, method, args, config, train_datasets, test_datasets, verbose=False):
+def run_model(identity, method, args, config, train_datasets, test_datasets, verbose=False, visdom=None):
     try:   
+
+        print (args)
         result_folder = args.results_dir
 
         m, cmd = method
@@ -100,8 +106,11 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
 
         identity["cmd"] = str(cmd)
 
-        model = GenerativeReplayLearner(args, 2, verbose=verbose)
-
+        model = GenerativeReplayLearner(args, 2, verbose=verbose, visdom=visdom)
+        
+        if visdom is not None:
+            model.eval_cb = cb._task_loss_cb(model, test_datasets, log=args.log, visdom=visdom, iters_per_task=args.iters)
+            
         solver = Classifier(
             input_feat=config['feature'],
             classes=len(train_datasets[0].classes),
@@ -114,10 +123,6 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
     
         if m in ["mp-gan", "mp-wgan", "sg-cgan", "sg-cwgan"]:
             args.replay = "generative"
-            if m in ["sg-cgan", "sg-cwgan"]:
-                args.g_iters = 5000
-            else:
-                args.g_iters = 1000
 
             generator = arg_params.get_generator(m, config, cuda, device, args, init_n_classes=2)
             model.set_generator(generator)
@@ -164,12 +169,20 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
 
                 replayed_dataset = None
                 if args.replay == "generative":
-                    replayed_dataset = model.sample(prev_active_classes, 500)
+
+                    if args.replay_size <= 1:
+                        # when replay_size in [0, 1]; #samples == replay_size * len(train_dataset)
+                        replayed_dataset = model.sample(prev_active_classes, 2*len(train_dataset), n=args.replay_size*len(train_dataset))
+                    else:
+                        # otherwise; #samples == replay_size * len(active_classes_index)
+                        replayed_dataset = model.sample(prev_active_classes, args.replay_size)
+
+
                 elif args.replay == "exact":
                     replayed_dataset = prev_dataset
                 
                 start = time.time()
-                model.train_solver(task, train_dataset, replayed_dataset)
+                model.train_solver(task, train_dataset, replayed_dataset, rnt=args.rnt)
                 training_time = time.time() - start
 
                 identity["solver_training_time"] = training_time
@@ -227,16 +240,53 @@ def clearup_tmp_file(result_folder, ntask, methods, delete=True):
                 fo.close()
 
                 if delete:
+                    print("WWWW")
                     os.remove(result_folder+fname)
             except Exception as e:
                 print(e)
 
     fresult.close()
 
+
 def select_dataset(args):
     if args.data_dir == "pamap":
-        classes = ['lying', 'sitting', 'standing', 'ironing', 'vacuum cleaning', 'ascending stairs', 'walking', 'descending stairs', 'cycling', 'running']
-        args.data_dir = "./Dataset/Dataset_PerCom18_STL/pamap.feat"
+        classes = [
+            'lying', 
+            'sitting', 
+            'standing', 
+            'ironing', 
+            'vacuum cleaning', 
+            'ascending stairs', 
+            'walking', 
+            'descending stairs', 
+            'cycling', 
+            'running'
+        ]
+
+        data_dir = "./Dataset/PAMAP2/pamap.feat"
+
+    elif args.data_dir == "dsads":
+        classes = [
+            "sitting",
+            "standing",
+            "lying on back side",
+            "lying on right side",
+            "ascending stairs",
+            "descending stairs",
+            "exercising on a stepper",
+            "rowing",
+            "jumping",
+            "playing basketball"
+        ]
+
+        data_dir = "./Dataset/DSADS/dsads.feat"
+
+
+    elif args.data_dir == "housea":
+        classes = ['A0', 'A1', 'A2', 'A3', 'A4', 'A5'] #skip A6
+        args.tasks = 3
+        data_dir = "./Dataset/House/HouseA.feat"
+
     else:
         classes = [
             "R1_work_at_computer",
@@ -252,9 +302,9 @@ def select_dataset(args):
             "R2_prepare_lunch",
             "R1_work_at_dining_room_table",
         ]
-        args.data_dir = "./Dataset/twor.2009/annotated.feat.ch5"
-    
-    return SmartHomeDataset(args.data_dir, classes=classes)
+        data_dir = "./Dataset/twor.2009/annotated.feat.ch5"
+
+    return SmartHomeDataset(data_dir, classes=classes)
 
 if __name__ == "__main__":
 
@@ -283,7 +333,7 @@ if __name__ == "__main__":
     pool = mp.Pool()
     start = time.time()
     ntask = 10
-    for task_order in range(ntask):
+    for task_order in range(3, ntask):
         
         base_dataset.permu_task_order()
         identity = {
@@ -309,22 +359,34 @@ if __name__ == "__main__":
         if args.oversampling:
             dataset = traindata.resampling()
 
-        train_datasets, config, classes_per_task = traindata.split(tasks=args.tasks)
+        train_datasets, config, classes_per_task = dataset.split(tasks=args.tasks)
         test_datasets, _, _ = testdata.split(tasks=args.tasks)
+
+        # Check distribution of label
+        # for d in dataset.pddata["ActivityName"].unique():
+        #     x = dataset.pddata
+        #     print(d, len(x[x["ActivityName"]==d]))
+        
+
+        # for d in train_datasets:
+        #     print(d.pddata["ActivityName"].unique())
 
         print("******* Run ",task_order,"*******")
         print("\n")
 
+        base_args = args
         for method in methods:
             m, cmd = method
             identity["method"] = m
-            args = copy.deepcopy(args)
+            args = copy.deepcopy(base_args)
             
-            args.critic_fc_units = (cmd+1)*1000
-            args.generator_fc_units = (cmd+1)*1000
+            args.critic_fc_units = (cmd+1)*args.hidden_units
+            args.generator_fc_units = (cmd+1)*args.hidden_units
 
+            
+            args.g_iters = get_g_iter(m, None)
             # run_model(identity, method, args, config, train_datasets, test_datasets, True)
-            pool.apply_async(run_model, args=(identity, method, args, config, train_datasets, test_datasets, True))
+            pool.apply_async(run_model, args=(identity, method, args, config, train_datasets, test_datasets, False))
             
     pool.close()
     pool.join()

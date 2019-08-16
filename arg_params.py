@@ -41,6 +41,8 @@ def get_parser():
 
     train_params.add_argument('--batch', type=int, default=5, help="batch-size")
     train_params.add_argument('--optimizer', type=str, choices=['adam', 'adam_reset', 'sgd'], default='adam')
+    train_params.add_argument('--replay-size', type=int, default=500, help="# replayed samples used in each training session")
+    train_params.add_argument('--rnt', type=float, default=0.5, help="relative importance of new task")
 
 
     model_params = parser.add_argument_group('Model Parameters')

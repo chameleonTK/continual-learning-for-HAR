@@ -151,7 +151,6 @@ class GenerativeReplayLearner():
 
             if batch_index <= iters:
                 # Train the main model with this batch
-                # TODO consider rnt >> importance_of_new_task
                 loss_dict = model.train_a_batch(x, y, x_=x_, y_=y_, scores=scores, scores_=scores_,
                                                 active_classes=active_classes, task=task, rnt=rnt)
 
