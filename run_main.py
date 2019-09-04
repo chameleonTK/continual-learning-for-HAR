@@ -240,7 +240,6 @@ def clearup_tmp_file(result_folder, ntask, methods, delete=True):
                 fo.close()
 
                 if delete:
-                    print("WWWW")
                     os.remove(result_folder+fname)
             except Exception as e:
                 print(e)
@@ -302,7 +301,7 @@ def select_dataset(args):
             "R2_prepare_lunch",
             "R1_work_at_dining_room_table",
         ]
-        data_dir = "./Dataset/twor.2009/annotated.feat.ch5"
+        data_dir = "./Dataset/twor.2009/annotated.feat.ch1"
 
     return SmartHomeDataset(data_dir, classes=classes)
 
@@ -323,10 +322,7 @@ if __name__ == "__main__":
 
 
     methods = [ 
-        ("offline", 0), ("none", 0), ("exact", 0), ("mp-gan", 0), ("mp-wgan", 0), ("sg-cgan", 0), ("sg-cwgan", 0), ("lwf", 0), ("ewc", 0),
-        ("offline", 1), ("none", 1), ("exact", 1), ("mp-gan", 1), ("mp-wgan", 1), ("sg-cgan", 1), ("sg-cwgan", 1), ("lwf", 1), ("ewc", 1),
-        ("offline", 2), ("none", 2), ("exact", 2), ("mp-gan", 2), ("mp-wgan", 2), ("sg-cgan", 2), ("sg-cwgan", 2), ("lwf", 2), ("ewc", 2),
-        ("offline", 3), ("none", 3), ("exact", 3), ("mp-gan", 3), ("mp-wgan", 3), ("sg-cgan", 3), ("sg-cwgan", 3), ("lwf", 3), ("ewc", 3),
+        ("offline", 0), ("none", 0), ("exact", 0), ("mp-gan", 0), ("mp-wgan", 0), ("sg-cgan", 0), ("sg-cwgan", 0), ("lwf", 0), ("ewc", 0)
     ]
 
     jobs = []
@@ -374,19 +370,19 @@ if __name__ == "__main__":
         print("******* Run ",task_order,"*******")
         print("\n")
 
-        base_args = args
-        for method in methods:
-            m, cmd = method
-            identity["method"] = m
-            args = copy.deepcopy(base_args)
+        # base_args = args
+        # for method in methods:
+        #     m, cmd = method
+        #     identity["method"] = m
+        #     args = copy.deepcopy(base_args)
             
-            args.critic_fc_units = (cmd+1)*args.hidden_units
-            args.generator_fc_units = (cmd+1)*args.hidden_units
+            # args.critic_fc_units = (cmd+1)*args.hidden_units
+            # args.generator_fc_units = (cmd+1)*args.hidden_units
 
             
-            args.g_iters = get_g_iter(m, None)
+            # args.g_iters = get_g_iter(m, None)
             # run_model(identity, method, args, config, train_datasets, test_datasets, True)
-            pool.apply_async(run_model, args=(identity, method, args, config, train_datasets, test_datasets, False))
+            # pool.apply_async(run_model, args=(identity, method, args, config, train_datasets, test_datasets, False))
             
     pool.close()
     pool.join()
@@ -395,4 +391,4 @@ if __name__ == "__main__":
     training_time = time.time() - start
     print(training_time)
 
-    clearup_tmp_file(result_folder, ntask, methods)
+    # clearup_tmp_file(result_folder, ntask, methods)
