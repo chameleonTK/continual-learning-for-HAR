@@ -1,0 +1,7 @@
+walking;cycling;running;descending stairs;lying;ascending stairs;sitting;vacuum cleaning;standing;ironing
+ironing;walking;standing;ascending stairs;cycling;descending stairs;vacuum cleaning;running;sitting;lying
+ascending stairs;cycling;running;vacuum cleaning;descending stairs;standing;sitting;ironing;lying;walking
+ascending stairs;vacuum cleaning;cycling;descending stairs;lying;ironing;running;sitting;standing;walking
+running;ironing;lying;standing;vacuum cleaning;cycling;descending stairs;ascending stairs;walking;sitting
+lying;ironing;walking;vacuum cleaning;running;sitting;ascending stairs;cycling;standing;descending stairs
+descending stairs;standing;sitting;vacuum cleaning;walking;running;ironing;ascending stairs;lying;cycling
