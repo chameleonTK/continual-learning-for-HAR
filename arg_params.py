@@ -24,6 +24,7 @@ def get_parser():
     parser.add_argument('--generative-model', type=str, help="path to trained generative model")
     parser.add_argument('--output-model-path', type=str,help="path for output")
     parser.add_argument('--results-dir', required=True, type=str,help="path for results")
+    parser.add_argument('--task-order', required=False, type=str,help="specific task order")
     parser.add_argument('--visdom', action='store_true', help="use visdom for on-the-fly plots")
     parser.add_argument('--log', type=int, default=200, help="# iters after which to plot solver loss")
     parser.add_argument('--g-log', type=int, default=200, help="# iters after which to plot generator loss")

@@ -329,9 +329,18 @@ if __name__ == "__main__":
     pool = mp.Pool()
     start = time.time()
     ntask = 10
-    for task_order in range(3, ntask):
-        
-        base_dataset.permu_task_order()
+
+    tasks = []
+    if args.task_order is not None:
+        ft = open(args.task_order)
+        tasks = [line.strip().split(";") for line in ft]
+
+    for task_order in range(ntask):
+        if args.task_order is not None:
+            base_dataset.permu_task_order(tasks[task_order])
+        else:
+            base_dataset.permu_task_order()
+
         identity = {
             "task_order": None,
             "method": None,
@@ -346,8 +355,9 @@ if __name__ == "__main__":
         
         
         identity["task_order"] = task_order
-        save_order(result_folder, task_order, base_dataset.classes)
 
+        if args.task_order is None:
+            save_order(result_folder, task_order, base_dataset.classes)
         
         traindata, testdata = base_dataset.train_test_split()
 
@@ -370,18 +380,14 @@ if __name__ == "__main__":
         print("******* Run ",task_order,"*******")
         print("\n")
 
-        # base_args = args
-        # for method in methods:
-        #     m, cmd = method
-        #     identity["method"] = m
-        #     args = copy.deepcopy(base_args)
+        base_args = args
+        for method in methods:
+            m, cmd = method
+            identity["method"] = m
+            args = copy.deepcopy(base_args)
             
-            # args.critic_fc_units = (cmd+1)*args.hidden_units
-            # args.generator_fc_units = (cmd+1)*args.hidden_units
-
-            
-            # args.g_iters = get_g_iter(m, None)
-            # run_model(identity, method, args, config, train_datasets, test_datasets, True)
+            args.g_iters = get_g_iter(m, None)
+            run_model(identity, method, args, config, train_datasets, test_datasets, True)
             # pool.apply_async(run_model, args=(identity, method, args, config, train_datasets, test_datasets, False))
             
     pool.close()

@@ -59,17 +59,18 @@ class SmartHomeDataset(Dataset):
         self.target_tranform = None
 
         
-    def permu_task_order(self):
-        lst = np.random.permutation(self.classes)
+    def permu_task_order(self, classes = None):
+        if classes is not None:
+            self.classes = classes
+        else:
+            lst = np.random.permutation(self.classes)
+            self.classes = lst[0:10]
 
-        self.classes = lst[0:10]
-        print(lst)
-        return lst
+        print("Task order: ", self.classes)
+        return self.classes
         
 
-    def train_test_split(self):
-
-        
+    def train_test_split(self):        
         traindata, testdata = train_test_split(self.pddata, test_size=0.2, random_state=self.random_state)
 
         traindata = SmartHomeDataset("", rawdata=traindata, classes=self.classes)
