@@ -5,3 +5,6 @@ lying on back side;descending stairs;jumping;sitting;rowing;playing basketball;l
 sitting;lying on right side;ascending stairs;standing;exercising on a stepper;rowing;playing basketball;descending stairs;jumping;lying on back side
 ascending stairs;descending stairs;standing;lying on back side;playing basketball;lying on right side;sitting;jumping;exercising on a stepper;rowing
 exercising on a stepper;lying on back side;sitting;ascending stairs;rowing;standing;lying on right side;descending stairs;jumping;playing basketball
+descending stairs;lying on right side;standing;ascending stairs;lying on back side;sitting;playing basketball;jumping;rowing;exercising on a stepper
+playing basketball;lying on back side;exercising on a stepper;jumping;sitting;standing;lying on right side;rowing;descending stairs;ascending stairs
+sitting;descending stairs;ascending stairs;rowing;exercising on a stepper;lying on back side;playing basketball;jumping;standing;lying on right side

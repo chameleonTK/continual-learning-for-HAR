@@ -155,8 +155,6 @@ class Classifier(ContinualLearner, Replayer):
             y_hat = y_hat[:, active_classes]
 
             if self.distill and scores is not None:
-
-                print("WWWWWsssssssssssssssssssssssW")
                 log_scores_norm = F.log_softmax(y_hat / self.KD_temp, dim=1)
                 targets_norm = F.softmax(scores_ / self.KD_temp, dim=1)
 
