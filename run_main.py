@@ -100,7 +100,9 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
 
         if m == "lwf":
             args.solver_distill = True
+            args.solver_ewc = False
         elif m== "ewc":
+            args.solver_distill = False
             args.solver_ewc = True
 
 
@@ -311,7 +313,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print("Arguments")
     print(args)
-    exit()
 
     result_folder = args.results_dir
 
