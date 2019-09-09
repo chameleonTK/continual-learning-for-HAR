@@ -1,7 +1,0 @@
-standing;descending stairs;lying on back side;sitting;rowing;playing basketball;lying on right side;ascending stairs;jumping;exercising on a stepper
-sitting;rowing;ascending stairs;jumping;lying on right side;playing basketball;lying on back side;descending stairs;exercising on a stepper;standing
-lying on right side;standing;rowing;jumping;sitting;descending stairs;lying on back side;ascending stairs;playing basketball;exercising on a stepper
-lying on back side;descending stairs;jumping;sitting;rowing;playing basketball;lying on right side;exercising on a stepper;standing;ascending stairs
-sitting;lying on right side;ascending stairs;standing;exercising on a stepper;rowing;playing basketball;descending stairs;jumping;lying on back side
-ascending stairs;descending stairs;standing;lying on back side;playing basketball;lying on right side;sitting;jumping;exercising on a stepper;rowing
-exercising on a stepper;lying on back side;sitting;ascending stairs;rowing;standing;lying on right side;descending stairs;jumping;playing basketball
