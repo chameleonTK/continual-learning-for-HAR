@@ -127,11 +127,11 @@ class Classifier(ContinualLearner, Replayer):
                 y_tmp = y - (task-1)*classes_per_task
 
                 binary_targets = np.zeros(shape=[len(y), classes_per_task], dtype='float32')
-                binary_targets[range(len(y)), y_tmp] = 1.0
+                binary_targets[range(len(y)), y_tmp.cpu()] = 1.0
                 binary_targets = torch.from_numpy(binary_targets)
 
                 binary_targets = torch.cat([torch.sigmoid(scores / self.KD_temp), binary_targets], dim=1)
-
+                binary_targets = binary_targets.to(self.device)
                 #sum over classes, then average over batch
                 predL = F.binary_cross_entropy_with_logits(
                     input=y_hat, target=binary_targets, reduction='none'

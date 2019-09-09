@@ -77,7 +77,7 @@ def get_g_iter(method, cmd=None):
         return 1000
 
 def run_model(identity, method, args, config, train_datasets, test_datasets, verbose=False, visdom=None):
-    #try:   
+    try:   
 
         print (args)
         result_folder = args.results_dir
@@ -213,10 +213,10 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
 
         save_results(result_folder, identity, results)
 
-    #except Exception as e:
-    #    print("ERROR:", e)
+    except Exception as e:
+        print("ERROR:", e)
 
-    #print("DONE task order", identity["task_order"])
+    print("DONE task order", identity["task_order"])
 
 
 def clearup_tmp_file(result_folder, ntask, methods, delete=True):
@@ -322,9 +322,7 @@ if __name__ == "__main__":
 
 
     methods = [ 
-        ("offline", 0), ("none", 0), ("exact", 0), ("mp-gan", 0), ("mp-wgan", 0), ("sg-cgan", 0), ("sg-cwgan", 0), 
-        ("lwf", 0), 
-        ("ewc", 0)
+        ("offline", 0), ("none", 0), ("exact", 0), ("mp-gan", 0), ("mp-wgan", 0), ("sg-cgan", 0), ("sg-cwgan", 0), ("lwf", 0), ("ewc", 0)
     ]
 
     jobs = []
@@ -389,7 +387,7 @@ if __name__ == "__main__":
             args = copy.deepcopy(base_args)
             
             args.g_iters = get_g_iter(m, None)
-            run_model(identity, method, args, config, train_datasets, test_datasets, True)
+#            run_model(identity, method, args, config, train_datasets, test_datasets, True)
             # pool.apply_async(run_model, args=(identity, method, args, config, train_datasets, test_datasets, False))
             
     pool.close()
@@ -399,4 +397,4 @@ if __name__ == "__main__":
     training_time = time.time() - start
     print(training_time)
 
-    # clearup_tmp_file(result_folder, ntask, methods)
+    clearup_tmp_file(result_folder, ntask, methods, delete=False)
