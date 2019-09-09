@@ -311,6 +311,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print("Arguments")
     print(args)
+    exit()
 
     result_folder = args.results_dir
 
