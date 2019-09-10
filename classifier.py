@@ -163,7 +163,7 @@ class Classifier(ContinualLearner, Replayer):
                 zeros_to_add = torch.zeros(n_batch, n-scores_.size(1))
                 zeros_to_add = zeros_to_add.to(self.device)
 
-                targets_norm = torch.cat([targets_norm.detach(), zeros_to_add], dim=1)
+                targets_norm = torch.cat([targets_norm.detach().cpu(), zeros_to_add.cpu()], dim=1).to(self.device)
 
                 # Calculate distillation loss (see e.g., Li and Hoiem, 2017)
                 KD_loss_unnorm = -(targets_norm * log_scores_norm)
