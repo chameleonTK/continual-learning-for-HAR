@@ -76,10 +76,19 @@ def get_g_iter(method, cmd=None):
     else:
         return 1000
 
+# Havent been used
+# def get_hidden_unit(args):
+#     if args.data_dir == "pamap":
+#         return 1000
+#     elif args.data_dir == "dsads":
+#         return 2000
+#     elif args.data_dir == "housea":
+#         return 100
+#     else:
+#         return 500
+
 def run_model(identity, method, args, config, train_datasets, test_datasets, verbose=False, visdom=None):
     #try:   
-
-        print (args)
         result_folder = args.results_dir
 
         m, cmd = method
@@ -105,8 +114,8 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
             args.solver_distill = False
             args.solver_ewc = True
 
-
         identity["cmd"] = str(cmd)
+        print(args)
 
         model = GenerativeReplayLearner(args, 2, verbose=verbose, visdom=visdom)
         
@@ -339,6 +348,7 @@ if __name__ == "__main__":
         ft = open(args.task_order)
         tasks = [line.strip().split(";") for line in ft]
 
+    base_args = args
     for task_order in range(ntask):
         if args.task_order is not None:
             base_dataset.permu_task_order(tasks[task_order])
@@ -384,7 +394,6 @@ if __name__ == "__main__":
         print("******* Run ",task_order,"*******")
         print("\n")
 
-        base_args = args
         for method in methods:
             m, cmd = method
             identity["method"] = m
