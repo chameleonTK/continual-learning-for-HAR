@@ -89,8 +89,6 @@ def get_g_iter(method, cmd=None):
 
 def run_model(identity, method, args, config, train_datasets, test_datasets, verbose=False, visdom=None):
     #try:   
-
-        
         result_folder = args.results_dir
 
         m, cmd = method
@@ -117,6 +115,7 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
             args.solver_ewc = True
 
         identity["cmd"] = str(cmd)
+        print(args)
 
         model = GenerativeReplayLearner(args, 2, verbose=verbose, visdom=visdom)
         

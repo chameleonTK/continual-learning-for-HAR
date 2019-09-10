@@ -62,6 +62,7 @@ if __name__ == "__main__":
         ft = open(args.task_order)
         tasks = [line.strip().split(";") for line in ft]
 
+    base_args = args
     for task_order in range(ntask):
         if args.task_order is not None:
             base_dataset.permu_task_order(tasks[task_order])
@@ -98,7 +99,6 @@ if __name__ == "__main__":
         print("******* Run ",task_order,"*******")
         print("\n")
 
-        base_args = args
         for method in methods:
             m, cmd = method
             identity["method"] = m
