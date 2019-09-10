@@ -76,6 +76,17 @@ def get_g_iter(method, cmd=None):
     else:
         return 1000
 
+# Havent been used
+# def get_hidden_unit(args):
+#     if args.data_dir == "pamap":
+#         return 1000
+#     elif args.data_dir == "dsads":
+#         return 2000
+#     elif args.data_dir == "housea":
+#         return 100
+#     else:
+#         return 500
+
 def run_model(identity, method, args, config, train_datasets, test_datasets, verbose=False, visdom=None):
     #try:   
 
