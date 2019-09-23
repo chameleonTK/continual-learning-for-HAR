@@ -17,6 +17,17 @@ import copy
 import torch.multiprocessing as mp
 from run_main import *
 
+def select_hidden_unit(args):
+    if args.data_dir == "pamap":
+        args.hidden_units = 1000
+    elif args.data_dir == "dsads":
+        args.hidden_units = 2000
+    elif args.data_dir == "housea":
+        args.hidden_units = 100
+    else:
+        args.hidden_units = 500
+
+    return  args.hidden_units
 
 if __name__ == "__main__":
 
@@ -43,12 +54,22 @@ if __name__ == "__main__":
     ]
 
     jobs = []
-    pool = mp.Pool()
+    # pool = mp.Pool()
     start = time.time()
     ntask = 10
+
+    tasks = []
+    if args.task_order is not None:
+        ft = open(args.task_order)
+        tasks = [line.strip().split(";") for line in ft]
+
+    base_args = args
     for task_order in range(ntask):
-        
-        base_dataset.permu_task_order()
+        if args.task_order is not None:
+            base_dataset.permu_task_order(tasks[task_order])
+        else:
+            base_dataset.permu_task_order()
+
         identity = {
             "task_order": None,
             "method": None,
@@ -63,7 +84,8 @@ if __name__ == "__main__":
         
         
         identity["task_order"] = task_order
-        save_order(result_folder, task_order, base_dataset.classes)
+        if args.task_order is None:
+            save_order(result_folder, task_order, base_dataset.classes)
 
         
         traindata, testdata = base_dataset.train_test_split()
@@ -81,7 +103,6 @@ if __name__ == "__main__":
         print("******* Run ",task_order,"*******")
         print("\n")
 
-        base_args = args
         for method in methods:
             m, cmd = method
             identity["method"] = m
@@ -89,14 +110,14 @@ if __name__ == "__main__":
             
             args.rnt = (cmd)*0.25
 
-            # run_model(identity, method, args, config, train_datasets, test_datasets, True)
-            pool.apply_async(run_model, args=(identity, method, args, config, train_datasets, test_datasets, False))
+            run_model(identity, method, args, config, train_datasets, test_datasets, True)
+            # pool.apply_async(run_model, args=(identity, method, args, config, train_datasets, test_datasets, False))
             
-    pool.close()
-    pool.join()
+    # pool.close()
+    # pool.join()
 
 
     training_time = time.time() - start
     print(training_time)
 
-    clearup_tmp_file(result_folder, ntask, methods)
+    # clearup_tmp_file(result_folder, ntask, methods)

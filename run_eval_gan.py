@@ -204,7 +204,7 @@ if __name__ == "__main__":
     fout = open(result_folder+"gan_score.txt", "w")
     fout.write("task_order, method, n_real, n_fake, offline_acc_real, offline_acc_fake, is, is_err, mmd, knn_tp, knn_fp, knn_fn, knn_tn\n")
 
-    fto = open(result_folder+"task_orders.txt")
+    fto = open(args.task_order)
     task_order = [line.strip().split(";") for line in fto]
     fto.close()
     
