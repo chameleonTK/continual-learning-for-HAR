@@ -20,14 +20,15 @@ from run_main import *
 def select_hidden_unit(args, cmd):
     if args.data_dir == "pamap":
         h = 1000
+
         if cmd == 0:
             h = 100
         elif cmd == 1:
-            h == 200
+            h = 200
         elif cmd == 2:
-            h == 500
+            h = 500
         elif cmd == 3:
-            h == 1000
+            h = 1000
         args.hidden_units = h
         
     elif args.data_dir == "dsads":
@@ -35,11 +36,11 @@ def select_hidden_unit(args, cmd):
         if cmd == 0:
             h = 100
         elif cmd == 1:
-            h == 200
+            h = 200
         elif cmd == 2:
-            h == 500
+            h = 500
         elif cmd == 3:
-            h == 1000
+            h = 1000
         args.hidden_units = h
 
     elif args.data_dir == "housea":
@@ -47,22 +48,22 @@ def select_hidden_unit(args, cmd):
         if cmd == 0:
             h = 20
         elif cmd == 1:
-            h == 50
+            h = 50
         elif cmd == 2:
-            h == 100
+            h = 100
         elif cmd == 3:
-            h == 200
+            h = 200
         args.hidden_units = h
     else:
         h = 500
         if cmd == 0:
             h = 50
         elif cmd == 1:
-            h == 100
+            h = 100
         elif cmd == 2:
-            h == 200
+            h = 200
         elif cmd == 3:
-            h == 500
+            h = 500
         args.hidden_units = h
 
     return  args.hidden_units
@@ -146,7 +147,9 @@ if __name__ == "__main__":
             args.generator_fc_units = select_hidden_unit(args, cmd)
 
             args.g_iters = get_g_iter(m, None)
+            # print(m, cmd, args.critic_fc_units)
             run_model(identity, method, args, config, train_datasets, test_datasets, True)
+
             # print(args.generator_fc_units)
             # pool.apply_async(run_model, args=(identity, method, args, config, train_datasets, test_datasets, True))
             
