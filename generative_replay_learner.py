@@ -139,8 +139,11 @@ class GenerativeReplayLearner():
             scores_ = None
 
             if replayed_dataset is not None:
-                x_, y_ = next(replayed_data_loader)                               
-                x_, y_ = x_.to(device), y_.to(device)
+                try:
+                    x_, y_ = next(replayed_data_loader)                               
+                    x_, y_ = x_.to(device), y_.to(device)
+                except StopIteration:
+                    continue
 
                 if self.previous_solver is not None:
                     with torch.no_grad():
@@ -279,7 +282,6 @@ class GenerativeReplayLearner():
         
         if all_samples is None:
             return None
-        
         
         if verbose:
             print("\n\n")

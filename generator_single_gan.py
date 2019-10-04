@@ -103,10 +103,13 @@ class GeneratorSingleGAN(Replayer):
 
             # Train the main model with this batch
             if replayed_dataset is not None:
-                x_, y_ = next(replayed_data_loader)                               
-                x_, y_ = x_.to(device), y_.to(device) 
-                loss_dict = self.train_a_batch(x_, y_, noise=instance_noise_factor)
-                
+                try: 
+                    x_, y_ = next(replayed_data_loader)                               
+                    x_, y_ = x_.to(device), y_.to(device) 
+                    loss_dict = self.train_a_batch(x_, y_, noise=instance_noise_factor)
+                except StopIteration:
+                    continue
+
             loss_dict = self.train_a_batch(x, y, noise=instance_noise_factor)
 
             for loss_cb in loss_cbs:
