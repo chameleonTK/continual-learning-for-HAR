@@ -226,7 +226,7 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
         
 
         save_results(result_folder, identity, results)
-
+        return model
     #except Exception as e:
     #    print("ERROR:", e)
 

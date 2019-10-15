@@ -21,9 +21,9 @@ def select_hidden_unit(args):
     if args.data_dir == "pamap":
         args.hidden_units = 1000
     elif args.data_dir == "dsads":
-        args.hidden_units = 2000
+        args.hidden_units = 1000
     elif args.data_dir == "housea":
-        args.hidden_units = 100
+        args.hidden_units = 200
     else:
         args.hidden_units = 500
 
@@ -118,7 +118,13 @@ if __name__ == "__main__":
 
             _train_datasets = train_datasets
             # cmd==0; no extra helps
-            if cmd==1:
+            if cmd==0:
+                args.self_verify = False
+                args.oversampling = False
+                args.solver_ewc = False
+                args.solver_distill = False
+                args.generator_noise = False
+            elif cmd==1:
                 args.self_verify = True
             elif cmd==2:
                 args.oversampling = True
