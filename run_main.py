@@ -113,6 +113,9 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
         elif m== "ewc":
             args.solver_distill = False
             args.solver_ewc = True
+        elif m in ["none", "exact", "offline"]:
+            args.solver_distill = False
+            args.solver_ewc = False
 
         identity["cmd"] = str(cmd)
         print(args)
