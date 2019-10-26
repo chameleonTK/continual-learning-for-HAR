@@ -49,12 +49,12 @@ if __name__ == "__main__":
 
     base_dataset = select_dataset(args)
 
-    methods = [("offline", 0)]
+    methods = [("sg-cgan", 0)]
 
     jobs = []
     # pool = mp.Pool()
     start = time.time()
-    ntask = 10
+    ntask = 2
 
     tasks = [
         [
@@ -65,24 +65,31 @@ if __name__ == "__main__":
         ],
 
         [
-            "R2_prepare_dinner",
-            "R2_watch_TV",
-        ],
-
-        [
             "R2_prepare_lunch",
-            "R1_work_at_dining_room_table",
-        ],
-
-        [
             "R2_prepare_dinner",
-            "R2_prepare_lunch"
+            "R1_work_at_dining_room_table",
+            "R2_watch_TV",
         ],
 
-         [
-            "R2_watch_TV",
-            "R1_work_at_dining_room_table",
-        ],
+        # [
+        #     "R2_prepare_dinner",
+        #     "R2_watch_TV",
+        # ],
+
+        # [
+        #     "R2_prepare_lunch",
+        #     "R1_work_at_dining_room_table",
+        # ],
+
+        # [
+        #     "R2_prepare_dinner",
+        #     "R2_prepare_lunch"
+        # ],
+
+        #  [
+        #     "R2_watch_TV",
+        #     "R1_work_at_dining_room_table",
+        # ],
     ]
     
     if args.task_order is not None:
@@ -111,6 +118,9 @@ if __name__ == "__main__":
         identity["task_order"] = task_order
         
         traindata, testdata = base_dataset.train_test_split()
+        for c in testdata.pddata["ActivityName"].unique():
+            d = testdata.pddata
+            print (c, len(d[d["ActivityName"]==c]))
 
         dataset = traindata
         if args.oversampling:
@@ -118,7 +128,12 @@ if __name__ == "__main__":
 
         train_datasets, config, classes_per_task = dataset.split(tasks=args.tasks)
         test_datasets, _, _ = testdata.split(tasks=args.tasks)
+        test_datasets_per_class, _, _ = testdata.split(tasks=len(tasks[task_order]))
 
+        print("\n\nTraining Data")
+        for t in train_datasets:
+            print(t, len(t), t.pddata["ActivityName"].unique())
+            
         print("******* Run ",task_order,"*******")
         print("\n")
 
@@ -135,7 +150,12 @@ if __name__ == "__main__":
 
             args.g_iters = get_g_iter(m, None)
             model = run_model(identity, method, args, config, train_datasets, test_datasets, True)
-            result = model.test(args.tasks, test_datasets, verbose=True)
+
+            print("\nManual test")
+            for t in test_datasets_per_class:
+                print(t, len(t), t.pddata["ActivityName"].unique())
+
+            result = model.test(None, test_datasets_per_class, verbose=True)
 
     training_time = time.time() - start
     print(training_time)

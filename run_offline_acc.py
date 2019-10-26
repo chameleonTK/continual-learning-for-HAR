@@ -18,6 +18,18 @@ import torch.multiprocessing as mp
 
 from run_main import *
 
+def select_hidden_unit(args):
+    if args.data_dir == "pamap":
+        args.hidden_units = 1000
+    elif args.data_dir == "dsads":
+        args.hidden_units = 1000
+    elif args.data_dir == "housea":
+        args.hidden_units = 200
+    else:
+        args.hidden_units = 500
+
+    return  args.hidden_units
+
 def run_model(identity, method, args, config, train_datasets, test_datasets, verbose=False):
     try:   
         result_folder = args.results_dir
@@ -46,36 +58,31 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
 
         identity["cmd"] = str(cmd)
 
-        model = GenerativeReplayLearner(args, 2, verbose=verbose)
-
-        solver = Classifier(
-            input_feat=config['feature'],
-            classes=len(train_datasets[0].classes),
-            fc_layers=args.solver_fc_layers, fc_units=args.solver_fc_units, 
-            cuda=cuda,
-            device=device,
-        ).to(device)
-        model.set_solver(solver)
-
         all_data = None
         for task, train_dataset in enumerate(train_datasets, 1):
-            for c in train_dataset.classes:
-                model.classmap.map(c)
-
+            identity["train_session"] = task
             if all_data is None:
                 all_data = train_dataset
             else:
                 all_data = all_data.merge(train_dataset)
 
-            if task==1:
-                continue
-            
-            newmodel = model.solver.add_output_units(len(train_dataset.classes))
-            model.set_solver(newmodel, None)
+            model = GenerativeReplayLearner(args, 2, verbose=verbose)
 
-        model.train_solver(None, all_data, None)
-        result = model.test(None, test_datasets, verbose=verbose)
-        results.append(result_to_list(identity, result))
+            solver = Classifier(
+                input_feat=config['feature'],
+                classes=len(all_data.classes),
+                fc_layers=args.solver_fc_layers, fc_units=args.solver_fc_units, 
+                cuda=cuda,
+                device=device,
+            ).to(device)
+
+            model.set_solver(solver)
+            for c in all_data.classes:
+                model.classmap.map(c)
+
+            model.train_solver(task, all_data, None)
+            result = model.test(task, test_datasets, verbose=verbose)
+            results.append(result_to_list(identity, result))
 
         save_results(result_folder, identity, results)
 
@@ -98,19 +105,25 @@ if __name__ == "__main__":
 
     base_dataset = select_dataset(args)
     
-
-
     methods = [ 
         ("offline", 0),
     ]
 
-    jobs = []
-    pool = mp.Pool()
     start = time.time()
     ntask = 10
+
+    tasks = []
+    if args.task_order is not None:
+        ft = open(args.task_order)
+        tasks = [line.strip().split(";") for line in ft]
+
+    base_args = args
     for task_order in range(ntask):
-        
-        base_dataset.permu_task_order()
+        if args.task_order is not None:
+            base_dataset.permu_task_order(tasks[task_order])
+        else:
+            base_dataset.permu_task_order()
+
         identity = {
             "task_order": None,
             "method": None,
@@ -125,7 +138,8 @@ if __name__ == "__main__":
         
         
         identity["task_order"] = task_order
-        save_order(result_folder, task_order, base_dataset.classes)
+        if args.task_order is None:
+            save_order(result_folder, task_order, base_dataset.classes)
 
         
         traindata, testdata = base_dataset.train_test_split()
@@ -135,7 +149,7 @@ if __name__ == "__main__":
             dataset = traindata.resampling()
 
         train_datasets, config, classes_per_task = dataset.split(tasks=args.tasks)
-        test_datasets, _, _ = testdata.split(tasks=2*args.tasks)
+        test_datasets, _, _ = testdata.split(tasks=args.tasks)
         
         print("CHECK")
         for t in test_datasets:
@@ -149,18 +163,15 @@ if __name__ == "__main__":
             identity["method"] = m
             args = copy.deepcopy(args)
             
-            args.critic_fc_units = args.hidden_units
-            args.generator_fc_units = args.hidden_units
+            args.critic_fc_units = select_hidden_unit(args)
+            args.generator_fc_units = select_hidden_unit(args)
 
-            args.g_iters = get_g_iter(m, None)
-            # run_model(identity, method, args, config, train_datasets, test_datasets, True)
-            pool.apply_async(run_model, args=(identity, method, args, config, train_datasets, test_datasets, True))
+            run_model(identity, method, args, config, train_datasets, test_datasets, True)
+            # pool.apply_async(run_model, args=(identity, method, args, config, train_datasets, test_datasets, True))
             
-    pool.close()
-    pool.join()
 
 
     training_time = time.time() - start
     print(training_time)
 
-    clearup_tmp_file(result_folder, ntask, methods)
+    # clearup_tmp_file(result_folder, ntask, methods)
