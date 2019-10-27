@@ -45,14 +45,13 @@ def save_order(result_folder, task_order, tasks):
     fout.close()
 
 def save_model(result_folder, identity, model, model_type):
-    # name = "t{task_order}-m{method}{c}-{type}.model".format(
-    #     task_order=identity["task_order"],
-    #     method=identity["method"],
-    #     type=model_type,
-    #     c=identity["cmd"])
+    name = "t{task_order}-m{method}{c}-{type}.model".format(
+        task_order=identity["task_order"],
+        method=identity["method"],
+        type=model_type,
+        c=identity["cmd"])
 
-    # model.save_model(result_folder+name)
-    pass
+    model.save_model(result_folder+name)
 
 
 def save_results(result_folder, identity, results):
@@ -220,9 +219,9 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
 
 
             
-        save_model(result_folder, identity, model.solver, "solver")
-        if model.generator is not None:
-            save_model(result_folder, identity, model.generator, "generator")
+        # save_model(result_folder, identity, model.solver, "solver")
+        # if model.generator is not None:
+        #     save_model(result_folder, identity, model.generator, "generator")
         
 
         save_results(result_folder, identity, results)
@@ -300,7 +299,7 @@ def select_dataset(args):
         args.tasks = 3
         data_dir = "./Dataset/House/HouseA.feat"
 
-    else:
+    elif args.data_dir == "casas":
         classes = [
             "R1_work_at_computer",
             "R2_work_at_computer",
@@ -316,7 +315,9 @@ def select_dataset(args):
             "R1_work_at_dining_room_table",
         ]
         data_dir = "./Dataset/twor.2009/annotated.feat.ch1"
-
+    else:
+        raise Exception("Unknow dataset")
+        
     return SmartHomeDataset(data_dir, classes=classes)
 
 if __name__ == "__main__":

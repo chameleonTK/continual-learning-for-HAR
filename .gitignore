@@ -2,3 +2,5 @@ env/
 .vscode/
 __pycache__/
 Results/**/_*.tmp
+Results/_tmp
+**/_tmp

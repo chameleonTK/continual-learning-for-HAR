@@ -18,7 +18,7 @@ import torch.multiprocessing as mp
 from run_main import *
 
 def get_g_iter(method, cmd=None):
-    return 1000*int(cmd)
+    return 5000
 
 def get_hidden_unit(args):
     if args.data_dir == "pamap":
@@ -31,7 +31,7 @@ def get_hidden_unit(args):
         return 100
 
     else:
-        return 100
+        return 500
 
 if __name__ == "__main__":
 
@@ -50,7 +50,8 @@ if __name__ == "__main__":
 
 
     methods = [ 
-        ("offline", 0), ("none", 0), ("exact", 0), ("mp-gan", 0), ("mp-wgan", 0), ("sg-cgan", 0), ("sg-cwgan", 0), ("lwf", 0), ("ewc", 0),
+        # ("offline", 0), ("none", 0), ("exact", 0), ("mp-gan", 0), ("mp-wgan", 0), ("sg-cgan", 0), ("sg-cwgan", 0), ("lwf", 0), ("ewc", 0),
+        ("sg-cgan", 0)
     ]
 
     
@@ -70,7 +71,31 @@ if __name__ == "__main__":
     
     identity["task_order"] = 1
 
-    
+    base_dataset.permu_task_order(
+        # ["R1_work_at_computer", "R2_work_at_computer", "R1_sleep", "R2_bed_to_toilet", "R2_prepare_lunch", "R2_prepare_dinner", "R1_bed_to_toilet", "R2_sleep", "R2_watch_TV", "R1_work_at_dining_room_table"]
+        [
+            "R2_work_at_computer", # 
+            "R1_bed_to_toilet",  #
+            
+            #1
+            "R2_prepare_dinner", 
+            "R1_work_at_dining_room_table", 
+
+            #2
+            "R2_watch_TV", 
+            "R1_work_at_computer", 
+
+            #3
+            "R1_sleep", 
+            "R2_sleep", 
+
+            #4
+            "R2_prepare_lunch", 
+            "R2_bed_to_toilet"
+
+            #5
+        ]
+    )
     traindata, testdata = base_dataset.train_test_split()
 
     dataset = traindata
@@ -93,15 +118,20 @@ if __name__ == "__main__":
         args.critic_fc_units = get_hidden_unit(args)
         args.generator_fc_units = get_hidden_unit(args)
 
-        args.g_iters = get_g_iter(m, cmd+1)
+        args.g_iters = get_g_iter(m, None)
+        # args.log = 50
 
         env_name = "Continual learning ["+m+"]"
-        visdom = {'env': env_name, 'graph': "models"}
+        visdom = {'env': env_name, 'graph': "models", "values":[]}
 
         run_model(identity, method, args, config, train_datasets, test_datasets, verbose=True, visdom=visdom)
             
         training_time = time.time() - start
+        
 
+        fo = open(result_folder+"plot_"+m+".json", "w")
+        fo.write(json.dumps(visdom["values"]))
+        fo.close()
         print("Training Time", training_time)
 
     
