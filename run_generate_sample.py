@@ -54,7 +54,8 @@ def save_data_to_file(fpath, data, columns=None):
     for x,y in data_loader:
 
         x = x.data.numpy()
-        y = y.data.numpy()
+        y = y
+        
         s = [str(m) for m in x[0]]
         s.append(str(y[0]))
         
@@ -77,6 +78,8 @@ if __name__ == "__main__":
     base_dataset = select_dataset(args)
 
     methods = [("sg-cgan", 0), ("sg-cwgan", 0), ("mp-gan", 0), ("mp-wgan", 0)]
+
+    # methods = [("sg-cgan", 0)]
 
     jobs = []
     # pool = mp.Pool()
@@ -126,7 +129,6 @@ if __name__ == "__main__":
             if model.generator is not None:
                 save_model(result_folder, identity, model.generator, "generator")
         else:
-
             output_model_path = args.output_model_path
             print("Load Models")
             cuda = torch.cuda.is_available()
@@ -155,10 +157,12 @@ if __name__ == "__main__":
         
         N = 1000
         
+        def no_transform(y):
+            return y
+            
         generated_data = model.sample(model.classmap.classes, N, verbose=False)
-        generated_data.set_target_tranform(model.target_transform())
+        generated_data.set_target_tranform(no_transform)
         
-
         filename = get_model_name(0, m, "sample", "0").replace(".model", ".feat")
 
         save_data_to_file(result_folder+filename, generated_data, columns=dataset.pddata.columns)

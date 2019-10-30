@@ -12,7 +12,7 @@ from generative_replay_learner import GenerativeReplayLearner;
 import arg_params
 from torch.nn import functional as F
 from scipy.stats import entropy
-# import ot
+from run_main import *
 
 # got this function from https://github.com/sbarratt/inception-score-pytorch
 def inception_score(generated_data, model, batch_size=5):
@@ -101,11 +101,13 @@ def knn(Mxx, Mxy, Myy, k, sqrt):
         M = M.abs().sqrt()
 
     INFINITY = float('inf')
+    
     val, idx = (M + torch.diag(INFINITY * torch.ones(n0 + n1))).topk(k, 0, False)
 
     count = torch.zeros(n0 + n1)
     for i in range(0, k):
         count = count + label.index_select(0, idx[i])
+    
     
     pred = torch.ge(count, (float(k) / 2) * torch.ones(n0 + n1)).float()
 
@@ -164,6 +166,24 @@ def get_model_name(task_order, method, model_type, c):
             type=model_type,
             c=c)
     return name
+
+def select_hidden_unit(args):
+    if args.data_dir == "pamap":
+        h = 1000
+        args.hidden_units = h
+        
+    elif args.data_dir == "dsads":
+        h = 1000
+        args.hidden_units = h
+
+    elif args.data_dir == "housea":
+        h = 200
+        args.hidden_units = h
+    else:
+        h = 500
+        args.hidden_units = h
+
+    return  args.hidden_units
             
 if __name__ == "__main__":
 
@@ -171,150 +191,182 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print("Arguments")
     print(args)
+    np.random.seed(0)
+    torch.manual_seed(0)
 
-    cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if cuda else "cpu")
-
-    # Set random seeds
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    if cuda:
-        torch.cuda.manual_seed(args.seed)
-
-    result_folder = args.results_dir
+    result_dir = args.results_dir
 
     print("\n")
     print("STEP1: load datasets")
 
     base_dataset = select_dataset(args)
+
+    jobs = []
+    start = time.time()
+    base_args = args
     
     traindata, testdata = base_dataset.train_test_split()
 
     dataset = traindata
-
     if args.oversampling:
         dataset = traindata.resampling()
-    
-    
+
     train_datasets, config, classes_per_task = dataset.split(tasks=args.tasks)
-    
-    
-    base_args = args
+    test_datasets, _, _ = testdata.split(tasks=args.tasks)
 
-    fout = open(result_folder+"gan_score.txt", "w")
-    fout.write("task_order, method, n_real, n_fake, offline_acc_real, offline_acc_fake, is, is_err, mmd, knn_tp, knn_fp, knn_fn, knn_tn\n")
-
-    fto = open(args.task_order)
-    task_order = [line.strip().split(";") for line in fto]
-    fto.close()
     
-    N = int(len(base_dataset)/len(base_dataset.classes))
+    fout = open(result_dir+"gan_score.csv", "w")
+    fout.write("class, method, n_real, n_fake, offline_acc_real, offline_acc_fake, is, is_err, mmd, knn_tp, knn_fp, knn_fn, knn_tn\n")
+
+    cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if cuda else "cpu")
     
-    for t in range(len(task_order)):
-        testdata.classes = task_order[t]
-        print("Task Order", t)
-        test_datasets, _, _ = testdata.split(tasks=args.tasks)
+    args.critic_fc_units = select_hidden_unit(args)
+    args.generator_fc_units = select_hidden_unit(args)
 
-        assert (train_datasets[0].classes==task_order[t][0:2])
+    offline_solver = Classifier(
+        input_feat=config['feature'],
+        classes=len(dataset.classes),
+        fc_layers=args.solver_fc_layers, fc_units=args.solver_fc_units, 
+        cuda=cuda,
+        device=device,
+    ).to(device)
 
-        offline_solver = Classifier(
+    
+        
+    model_name = get_model_name(0, "offline", "solver", "0")
+    offline_solver.load_model(result_dir+model_name)
+
+    offline_model = GenerativeReplayLearner(args, classes_per_task, visdom=None)
+    offline_model.set_solver(offline_solver)
+    for c in dataset.classes:
+        offline_model.classmap.map(c)
+
+    # result = offline_model.test(None, test_datasets, verbose=False)
+
+    classes = base_dataset.classes
+    all_data = base_dataset
+    all_data_per_class, _, _ = all_data.split(tasks=len(classes))
+
+    _all_data_index = {}
+    for c in classes:
+        df = None
+        for t in all_data_per_class:
+            if c in t.classes:
+                df = t
+
+        _all_data_index[c] = df
+        
+    for g in ["mp-gan", "mp-wgan", "sg-cgan", "sg-cwgan"]:
+        solver = Classifier(
             input_feat=config['feature'],
-            classes=config['classes']+2,
+            classes=config['classes'],
             fc_layers=args.solver_fc_layers, fc_units=args.solver_fc_units, 
             cuda=cuda,
             device=device,
         ).to(device)
 
+        model_name = get_model_name(0, g, "solver", "0")
+        solver.load_model(result_dir+model_name)
+
+        generator = arg_params.get_generator(g, config, cuda, device, args, init_n_classes=config["classes"])
+        model_name = get_model_name(0, g, "generator", "0")
+        generator.load_model(result_dir+model_name, n_classes=config['classes'])
+
+
+
+        model = GenerativeReplayLearner(args, classes_per_task, visdom=None)
+        model.set_solver(solver)
+        model.set_generator(generator)
+
+        for c in dataset.classes:
+            model.classmap.map(c)
+
+        generated_data = model.sample(model.classmap.classes, 1000, verbose=False)
+        
+        model.args.self_verify = False
+        _generated_data = model.sample(model.classmap.classes, 1000, verbose=False)
 
         
-        model_name = get_model_name(t, "offline", "solver", "0")
-        offline_solver.load_model(result_dir+model_name)
+        generated_data_per_class, _, _ = generated_data.split(tasks=len(classes))
+        _generated_data_per_class, _, _ = _generated_data.split(tasks=len(classes))
+        
 
-        offline_model = GenerativeReplayLearner(args, classes_per_task, visdom=None)
-        offline_model.set_solver(offline_solver)
-        for c in dataset.classes:
-            offline_model.classmap.map(c)
+        
+        _index = {}
+        for c in classes:
+            df = None
+            for t in generated_data_per_class:
+                if c in t.classes and len(t) > 0:
+                    df = t
 
-        # result = offline_model.test(None, test_datasets, verbose=False)
+            if df is None:
+                for t in _generated_data_per_class:
+                    if c in t.classes:
+                        df = t
+            
+            _index[c] = df
+        
+        test_datasets = [("all", generated_data, all_data)]
+        for k in _index:
+            test_datasets.append((k, _index[k], _all_data_index[k]))
 
+        for (c, fake, real) in test_datasets:
 
-        all_data = None
-        for task, train_dataset in enumerate(train_datasets, 1):
-            if all_data is None:
-                all_data = train_dataset
-            else:
-                all_data = all_data.merge(train_dataset)
+            fake.classes = all_data.classes
+            real.classes = all_data.classes
 
-        for g in ["mp-gan", "mp-wgan", "sg-cgan", "sg-cwgan"]:
-            solver = Classifier(
-                input_feat=config['feature'],
-                classes=config['classes'],
-                fc_layers=args.solver_fc_layers, fc_units=args.solver_fc_units, 
-                cuda=cuda,
-                device=device,
-            ).to(device)
+            print("\tlength", len(fake), len(real))
+            if len(fake) > 1000:
+                sample = fake.pddata.sample(n=1000)
+                fake = SmartHomeDataset("", rawdata=sample, classes=all_data.classes)
+            
+            if len(real) > 1000:
+                sample = real.pddata.sample(n=1000)
+                real = SmartHomeDataset("", rawdata=sample, classes=all_data.classes)
 
-            model_name = get_model_name(t, g, "solver", "0")
-            solver.load_model(result_dir+model_name)
+            print("\tsample length", len(fake), len(real))
+            fake.set_target_tranform(model.target_transform())
+            real.set_target_tranform(model.target_transform())
 
-            generator = arg_params.get_generator(g, config, cuda, device, args, init_n_classes=config["classes"])
-            model_name = get_model_name(t, g, "generator", "0")
-            generator.load_model(result_dir+model_name, n_classes=config['classes'])
+            fake_acc = accuracy(fake, offline_solver)
+            real_acc = accuracy(real, offline_solver)
 
+            is_score, is_err = inception_score(fake, model.solver)
 
-
-            model = GenerativeReplayLearner(args, classes_per_task, visdom=None)
-            model.set_solver(solver)
-            model.set_generator(generator)
-
-            for c in dataset.classes:
-                model.classmap.map(c)
-
-            generated_data = model.sample(model.classmap.classes, N, verbose=False)
-            generated_data.set_target_tranform(model.target_transform())
-            all_data.set_target_tranform(model.target_transform())
-
-            fake_acc = accuracy(generated_data, offline_solver)
-            real_acc = accuracy(all_data, offline_solver)
-
-            is_score, is_err = inception_score(generated_data, model.solver)
-
-            Mxx = distance(all_data, all_data, False)
-            Mxy = distance(all_data, generated_data, False)
-            Myy = distance(generated_data, generated_data, False)
-            # wasserstein(Mxy, True)
+            Mxx = distance(real, real, False)
+            Mxy = distance(real, fake, False)
+            Myy = distance(fake, fake, False)
+            # # wasserstein(Mxy, True)
             mmd_score = mmd(Mxx, Mxy, Myy, 1)
-            knn_score = knn(Mxx, Mxy, Myy, 1, False)
+            knn_score = knn(Mxx, Mxy, Myy, 10, False)
             knn_tp, knn_fp, knn_fn, knn_tn = knn_score[0:4]
+            
 
             resp = [
-                str(t),
+                c,
                 g,
-                str(len(all_data)),
-                str(len(generated_data)),
+                str(len(real)),
+                str(len(fake)),
                 str(real_acc),
                 str(fake_acc),
                 str(is_score),
                 str(is_err),
-                str(mmd_score),str(float(knn_tp)),
+                str(mmd_score),
+                str(float(knn_tp)),
                 str(float(knn_fp)),
                 str(float(knn_fn)),
                 str(float(knn_tn))
             ]
-            
-            fout.write(",".join(resp)+"\n")
-            
-            print("\t", g)
-
-        print("Task Order", t, "DONE")
-
-        fout.close()
         
-    
+            fout.write(",".join(resp)+"\n")
+            print("\tClass", c, "DONE")  
+        print(g, "DONE")
 
 
+    fout.close()
 
-    
-    
+    training_time = time.time() - start
+    print(training_time)
 
-
+    # clearup_tmp_file(result_dir, ntask, methods)
