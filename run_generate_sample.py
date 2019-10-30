@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
     base_dataset = select_dataset(args)
 
-    methods = [("sg-cgan", 0)]
+    methods = [("sg-cgan", 0), ("sg-cwgan", 0), ("mp-gan", 0), ("mp-wgan", 0)]
 
     jobs = []
     # pool = mp.Pool()
