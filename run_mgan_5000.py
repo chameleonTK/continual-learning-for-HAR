@@ -17,15 +17,54 @@ import copy
 import torch.multiprocessing as mp
 from run_main import *
 
-def select_hidden_unit(args):
+def select_hidden_unit(args, cmd):
     if args.data_dir == "pamap":
-        args.hidden_units = 1000
+        h = 1000
+
+        if cmd == 0:
+            h = 100
+        elif cmd == 1:
+            h = 200
+        elif cmd == 2:
+            h = 500
+        elif cmd == 3:
+            h = 1000
+        args.hidden_units = h
+        
     elif args.data_dir == "dsads":
-        args.hidden_units = 1000
+        h = 1000
+        if cmd == 0:
+            h = 100
+        elif cmd == 1:
+            h = 200
+        elif cmd == 2:
+            h = 500
+        elif cmd == 3:
+            h = 1000
+        args.hidden_units = h
+
     elif args.data_dir == "housea":
-        args.hidden_units = 200
+        h = 200
+        if cmd == 0:
+            h = 20
+        elif cmd == 1:
+            h = 50
+        elif cmd == 2:
+            h = 100
+        elif cmd == 3:
+            h = 200
+        args.hidden_units = h
     else:
-        args.hidden_units = 500
+        h = 500
+        if cmd == 0:
+            h = 50
+        elif cmd == 1:
+            h = 100
+        elif cmd == 2:
+            h = 200
+        elif cmd == 3:
+            h = 500
+        args.hidden_units = h
 
     return  args.hidden_units
 
@@ -46,11 +85,11 @@ if __name__ == "__main__":
 
 
     methods = [ 
-        ("offline", 0), ("sg-cgan", 0), #("mp-gan", 0), ("mp-wgan", 0),  ("sg-cwgan", 0), 
-        ("offline", 1), ("sg-cgan", 1), #("mp-gan", 1), ("mp-wgan", 1),  ("sg-cwgan", 1), 
-        ("offline", 2), ("sg-cgan", 2), #("mp-gan", 2), ("mp-wgan", 2),  ("sg-cwgan", 2), 
-        ("offline", 3), ("sg-cgan", 3), #("mp-gan", 3), ("mp-wgan", 3),  ("sg-cwgan", 3), 
-        ("offline", 4), ("sg-cgan", 4), #("mp-gan", 4), ("mp-wgan", 4),  ("sg-cwgan", 4), 
+        # ("offline", 0), ("none", 0), ("exact", 0), ("lwf", 0), ("ewc", 0), ("mp-gan", 0), ("mp-wgan", 0), ("sg-cgan", 0), ("sg-cwgan", 0), 
+        # ("offline", 1), ("none", 1), ("exact", 1), ("lwf", 1), ("ewc", 1), ("mp-gan", 1), ("mp-wgan", 1), ("sg-cgan", 1), ("sg-cwgan", 1), 
+        # ("offline", 2), ("none", 2), ("exact", 2), ("lwf", 2), ("ewc", 2), ("mp-gan", 2), ("mp-wgan", 2), ("sg-cgan", 2), ("sg-cwgan", 2), 
+        #("offline", 3), ("mp-gan", 3), 
+        ("mp-wgan", 3), #("none", 3), ("exact", 3), ("lwf", 3), ("ewc", 3), ("sg-cgan", 3), ("sg-cwgan", 3), 
     ]
 
     jobs = []
@@ -64,7 +103,7 @@ if __name__ == "__main__":
         tasks = [line.strip().split(";") for line in ft]
 
     base_args = args
-    for task_order in range(ntask):
+    for task_order in [4,8]:
         if args.task_order is not None:
             base_dataset.permu_task_order(tasks[task_order])
         else:
@@ -91,14 +130,11 @@ if __name__ == "__main__":
         traindata, testdata = base_dataset.train_test_split()
 
         dataset = traindata
-
         if args.oversampling:
             dataset = traindata.resampling()
-        
-        
+
         train_datasets, config, classes_per_task = dataset.split(tasks=args.tasks)
         test_datasets, _, _ = testdata.split(tasks=args.tasks)
-
 
         print("******* Run ",task_order,"*******")
         print("\n")
@@ -108,14 +144,15 @@ if __name__ == "__main__":
             identity["method"] = m
             args = copy.deepcopy(base_args)
             
-            args.rnt = (cmd)*0.25
-            args.critic_fc_units = select_hidden_unit(args)
-            args.generator_fc_units = select_hidden_unit(args)
+            args.critic_fc_units = select_hidden_unit(args, cmd)
+            args.generator_fc_units = select_hidden_unit(args, cmd)
 
-            args.g_iters = get_g_iter(m, None)
-            
+            args.g_iters = 5000 #get_g_iter(m, None)
+            # print(m, cmd, args.critic_fc_units)
             run_model(identity, method, args, config, train_datasets, test_datasets, True)
-            # pool.apply_async(run_model, args=(identity, method, args, config, train_datasets, test_datasets, False))
+
+            # print(args.generator_fc_units)
+            # pool.apply_async(run_model, args=(identity, method, args, config, train_datasets, test_datasets, True))
             
     # pool.close()
     # pool.join()

@@ -5,3 +5,4 @@ Results/**/_*.tmp
 Results/_tmp
 **/_tmp
 Results/**/*.model
+Reports/**/*.pdf

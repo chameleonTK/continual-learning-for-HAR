@@ -49,9 +49,13 @@ def _task_loss_cb(model, test_datasets, log, visdom, iters_per_task, vis_name=""
             
             loss_dict["Task"] = range(len(test_datasets))
             plot_data = loss_dict["Precision"]
-            
-            visdom["values"].append({"iter": iteration, "acc": plot_data})
             names = ["task"+str(s+1) for s in loss_dict["Task"]]
+            
+            if visdom is None:
+                return
+
+            visdom["values"].append({"iter": iteration, "acc": plot_data})
+            
 
             visual_visdom.visualize_scalars(
                 scalars=plot_data, names=names, iteration=iteration,
@@ -80,14 +84,22 @@ def _generator_training_callback(log, visdom, model, tasks=None, iters_per_task=
             )
             bar.update(1)
 
-        # if (iteration % log == 0) and (visdom is not None):
+        if visdom is None:
+            return
 
-        #     plot_data = [loss_dict['d_cost'], loss_dict['g_cost']]
-        #     names = ['Discriminator cost', 'Generator cost']
+        if task not in visdom["gan_loss"]:
+            visdom["gan_loss"][task] = []
 
-        #     visual_visdom.visualize_scalars(
-        #         scalars=plot_data, names=names, iteration=iteration,
-        #         title="GENERATOR: loss class{t}".format(t=task), env=visdom["env"], ylabel="training loss"
-        #     )
+        visdom["gan_loss"][task].append({"iter": iteration, "acc": loss_dict})
+
+        if (iteration % log == 0) and (visdom is not None):
+
+            plot_data = [loss_dict['d_cost'], loss_dict['g_cost']]
+            names = ['Discriminator cost', 'Generator cost']
+
+            visual_visdom.visualize_scalars(
+                scalars=plot_data, names=names, iteration=iteration,
+                title="GENERATOR: loss class{t}".format(t=task), env=visdom["env"], ylabel="training loss"
+            )
     # Return the callback-function
     return cb

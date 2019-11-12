@@ -337,7 +337,9 @@ if __name__ == "__main__":
 
 
     methods = [ 
-        ("offline", 0), ("none", 0), ("exact", 0), ("mp-gan", 0), ("mp-wgan", 0), ("sg-cgan", 0), ("sg-cwgan", 0), 
+        ("offline", 0), 
+        ("none", 0), ("exact", 0), 
+        ("mp-gan", 0), ("mp-wgan", 0), ("sg-cgan", 0), ("sg-cwgan", 0), 
         ("lwf", 0), 
         ("ewc", 0)
     ]
@@ -353,7 +355,7 @@ if __name__ == "__main__":
         tasks = [line.strip().split(";") for line in ft]
 
     base_args = args
-    for task_order in range(ntask):
+    for task_order in [0]:
         if args.task_order is not None:
             base_dataset.permu_task_order(tasks[task_order])
         else:
