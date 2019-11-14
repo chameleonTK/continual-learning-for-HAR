@@ -134,9 +134,15 @@ class GeneratorSingleGAN(Replayer):
         return self.generator.train_a_batch(x, y, noise=noise)
 
     def sample(self, class_index, sample_size):
+
+        mode = self.generator.generator.training
+        self.generator.generator.eval()
+
         z = self.generator._noise(sample_size)
         y = torch.LongTensor(list(np.full((sample_size, ), int(class_index))))
         s = self.generator.generator(z, y)
+
+        self.generator.generator.train(mode=mode)
         
         return s
 

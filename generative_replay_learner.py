@@ -234,43 +234,74 @@ class GenerativeReplayLearner():
         
         return d
 
+    def _verify(self, x_, y_, active_classes_index):
+        device = self.generator._device()
+
+        mode = self.solver.training
+        self.solver.eval()
+
+        x_ = x_.to(device)
+        y_ = y_.to(device)
+        y_hat = self.solver(x_)
+        y_hat = y_hat[:, active_classes_index]
+        y_hat = y_hat.to(device)
+
+        mask = (y_ == y_hat.max(1)[1])
+        x_ = x_[mask]
+
+        self.solver.train(mode=mode)
+        return x_
+
+    def _sample(self, class_index, sample_size):
+        x_ = self.generator.sample(class_index, sample_size)
+        y_ = torch.LongTensor(list(np.full((sample_size, ), int(class_index))))
+        return (x_, y_)
 
     def sample(self, active_classes, sample_size, verbose=True, n=None):
 
         device = self.generator._device()
         all_samples = None
         all_labels = None
-        if verbose:
-            print("\n\n")
-            print("Replayed data")
+        
         active_classes_index = range(len(active_classes))
         for class_index, class_label in enumerate(active_classes, 0):
-            x_ = self.generator.sample(class_index, sample_size)
-            y_ = torch.LongTensor(list(np.full((sample_size, ), int(class_index))))
+            
+            # Iterate until it gets a proper number of samples
+            x_ = None
+            for i in range(10):
+                tmpx_, tmpy_ = self._sample(class_index, sample_size)
+                tmpx_= tmpx_.narrow(0, 0, int(sample_size*0.8))
+                tmpy_ = tmpy_.narrow(0, 0, int(sample_size*0.8))
+                # Self-verify
+                if self.args.self_verify:
+                    tmpx_ = self._verify(tmpx_, tmpy_, active_classes_index)
+                    if len(tmpx_) ==0 and verbose:
+                        print("WARNING: your generator cannot generate class"+str(class_index)+" properly")
+                        # raise Exception("WARNING: your generator cannot generate class"+str(class_index)+" properly")
 
-            x_ = x_.to(device)
-            y_ = y_.to(device)
+                if x_ is None:
+                    x_ = tmpx_
+                else:
+                    x_ = torch.cat([x_, tmpx_], dim=0)
+                
+                if len(x_) > sample_size:
+                    x_ = x_.narrow(0, 0, sample_size)
+                    break
+                elif len(x_) == sample_size:
+                    break
+                   
+            # If not, then uses just what it can do
+            if len(x_) < sample_size:
+                tmpx_, tmpy_ = self._sample(class_index, sample_size - len(x_))
+                x_ = torch.cat([x_, tmpx_], dim=0)
+                if verbose:
+                    print("WARNING: low quality sample on ["+str(class_index)+"]", len(tmpx_))
 
-            # Self-verify
-            if self.args.self_verify:
-                y_hat = self.solver(x_)
-                y_hat = y_hat[:, active_classes_index]
-                y_hat = y_hat.to(device)
-
-                mask = (y_ == y_hat.max(1)[1])
-                x_ = x_[mask]
-
+            print("=> class", active_classes[class_index], len(x_))
             y_ = np.full((len(x_), ), class_label)
             x_ = x_.cpu().data.numpy()
 
-            if verbose:
-                print(" => class", class_index, len(x_))
-
-            if len(x_) <= 0:
-                if verbose:
-                    print("WARNING: your generator cannot generate class"+str(class_index)+" properly")
-                # raise Exception("WARNING: your generator cannot generate class"+str(class_index)+" properly")
-                continue
+            
                 
             if all_samples is None or len(all_samples)==0:
                 all_samples = x_
@@ -283,11 +314,6 @@ class GenerativeReplayLearner():
         if all_samples is None:
             return None
         
-        if verbose:
-            print("\n\n")
-
-        
-        
         df = pd.DataFrame(all_samples)
         df["ActivityName"] = all_labels
         df = df.sample(frac=1).reset_index(drop=True)
@@ -295,7 +321,6 @@ class GenerativeReplayLearner():
         if n is not None and n < len(df):
             df = df.sample(n=n).reset_index(drop=True)
         
-        print(len(df), active_classes)
         return SmartHomeDataset("", rawdata=df, classes=active_classes)
 
 

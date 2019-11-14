@@ -131,9 +131,12 @@ class GeneratorMultipleGAN(Replayer):
         return self.generators[class_index].train_a_batch(x, noise=noise)
 
     def sample(self, class_index, sample_size):
+
+        mode = self.generators[class_index].generator.training
+        self.generators[class_index].generator.eval()
         z = self.generators[class_index]._noise(sample_size)
         s = self.generators[class_index].generator(z)
-        
+        self.generators[class_index].generator.train(mode=mode)
         return s
 
     @property

@@ -49,16 +49,8 @@ if __name__ == "__main__":
     base_dataset = select_dataset(args)
     
 
-
-    methods = [ 
-        ("offline", 0),
-        ("offline", 1),
-        ("offline", 2),
-        ("offline", 3),
-        ("offline", 4),
-        ("offline", 5),
-        ("offline", 6),
-        ("offline", 7),
+    methods = [
+        ("mp-gan", 7),
     ]
 
     jobs = []
@@ -74,11 +66,6 @@ if __name__ == "__main__":
 
     base_args = args
     for task_order in range(len(tasks)):
-        if args.task_order is not None:
-            base_dataset.permu_task_order(tasks[task_order])
-        else:
-            base_dataset.permu_task_order()
-
         identity = {
             "task_order": None,
             "method": None,
