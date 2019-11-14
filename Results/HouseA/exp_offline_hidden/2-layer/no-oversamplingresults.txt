@@ -1,0 +1,25 @@
+task_order, method, cmd, train_session, task_index, no_of_test, no_of_correct_prediction, accuracy, solver_training_time, generator_training_time
+0,offline,0,None,1,40,39,0.975,None,None
+0,offline,0,None,2,35,19,0.5428571428571428,None,None
+0,offline,0,None,3,22,5,0.22727272727272727,None,None
+0,offline,1,None,1,40,35,0.875,None,None
+0,offline,1,None,2,35,15,0.42857142857142855,None,None
+0,offline,1,None,3,22,11,0.5,None,None
+0,offline,2,None,1,40,35,0.875,None,None
+0,offline,2,None,2,35,34,0.9714285714285714,None,None
+0,offline,2,None,3,22,11,0.5,None,None
+0,offline,3,None,1,40,35,0.875,None,None
+0,offline,3,None,2,35,34,0.9714285714285714,None,None
+0,offline,3,None,3,22,11,0.5,None,None
+0,offline,4,None,1,40,35,0.875,None,None
+0,offline,4,None,2,35,34,0.9714285714285714,None,None
+0,offline,4,None,3,22,11,0.5,None,None
+0,offline,5,None,1,40,35,0.875,None,None
+0,offline,5,None,2,35,34,0.9714285714285714,None,None
+0,offline,5,None,3,22,11,0.5,None,None
+0,offline,6,None,1,40,35,0.875,None,None
+0,offline,6,None,2,35,34,0.9714285714285714,None,None
+0,offline,6,None,3,22,11,0.5,None,None
+0,offline,7,None,1,40,35,0.875,None,None
+0,offline,7,None,2,35,34,0.9714285714285714,None,None
+0,offline,7,None,3,22,11,0.5,None,None

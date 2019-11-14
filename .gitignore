@@ -1,7 +1,7 @@
 env/
 .vscode/
 __pycache__/
-Results/**/_*.tmp
+Results/**/*.tmp
 Results/_tmp
 **/_tmp
 Results/**/*.model
