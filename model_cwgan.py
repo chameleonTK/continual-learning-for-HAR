@@ -7,7 +7,8 @@ from replayer import Replayer
 from torch import optim
 import numpy as np
 from torch.nn import functional as F
-from model_cgan import CondCritic, CondGenerator
+from gan_comp_critic import CondCritic
+from gan_comp_generator import CondGenerator
 
 class CWGAN(Replayer):
     def __init__(self, input_feat, n_classes = 10, cuda=False, device="cpu",

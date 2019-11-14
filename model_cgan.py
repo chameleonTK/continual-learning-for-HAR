@@ -8,65 +8,8 @@ from torch import optim
 import numpy as np
 from torch.nn import functional as F
 
-class CondCritic(nn.Module):
-    def __init__(self, input_feat, n_classes, fc_layers=3, fc_units=400, fc_drop=0, fc_bn=True, fc_nl="relu",
-                gated=False, bias=True, excitability=False, excit_buffer=False):
-        # configurations
-        super().__init__()
-        self.label = "Classifier"
-        self.emb = 2
-        self.label_emb = nn.Embedding(n_classes, self.emb)
-
-        # flatten image to 2D-tensor
-        self.flatten = utils.Flatten()
-
-        # fully connected hidden layers
-        inp_unit = input_feat
-        self.fc1 = nn.Linear(inp_unit+self.emb, fc_units, bias=bias)
-        self.fc2 = nn.Linear(fc_units, fc_units, bias=bias)
-        self.fc3 = nn.Linear(fc_units, 1, bias=bias)
-
-
-    def forward(self, z, y=None):
-        x = torch.cat((self.label_emb(y), z), 1)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        return torch.sigmoid(self.fc3(x))
-
-class CondGenerator(nn.Module):
-    def __init__(self, z_size, input_feat, n_classes,
-                fc_layers=3, fc_units=400, fc_drop=0, fc_bn=True, fc_nl="relu",
-                gated=False, bias=True, excitability=False, excit_buffer=False):
-        # configurations
-        super().__init__()
-        self.emb = 2
-        self.label_emb = nn.Embedding(n_classes, self.emb)
-
-        self.z_size = z_size
-        self.fc_layers = fc_layers
-        self.input_feat = input_feat
-
-        # flatten image to 2D-tensor
-        self.flatten = utils.Flatten()
-
-        inp_unit = z_size
-        self.fc1 = nn.Linear(inp_unit+self.emb, fc_units, bias=bias)
-        self.fc2 = nn.Linear(fc_units, fc_units, bias=bias)
-        self.fc3 = nn.Linear(fc_units, input_feat, bias=bias)
-        self.fc_nl = fc_nl
-
-    def forward(self, z, y=None):
-        x = torch.cat((self.label_emb(y), z), 1)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        
-        if self.fc_nl == "relu":
-            return F.leaky_relu(self.fc3(x))
-        elif self.fc_nl == "sigmoid":
-            return F.sigmoid(self.fc3(x))
-        else:
-            return (self.fc3(x))
-
+from gan_comp_critic import CondCritic
+from gan_comp_generator import CondGenerator
 
 class CGAN(Replayer):
     def __init__(self, input_feat, n_classes = 10, cuda=False, device="cpu",

@@ -34,12 +34,14 @@ class Classifier(ContinualLearner, Replayer):
 
         ######------SPECIFY MODEL------######
 
-        # flatten image to 2D-tensor
         inp_unit = input_feat
         self.flatten = utils.Flatten()
         self.layers = nn.ModuleList()
         self.layers.append(nn.Linear(inp_unit, fc_units, bias=True))
-        self.layers.append(nn.Linear(fc_units, fc_units, bias=True))
+
+        for i in range(fc_layers-2):
+            self.layers.append(nn.Linear(fc_units, fc_units, bias=True))
+            
         self.layers.append(nn.Linear(fc_units, classes, bias=True))
 
         self.set_activation('relu')

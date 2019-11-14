@@ -16,13 +16,51 @@ class Critic(nn.Module):
 
         # fully connected hidden layers
         inp_unit = input_feat
-        self.fc1 = nn.Linear(inp_unit, fc_units, bias=bias)
-        self.fc2 = nn.Linear(fc_units, fc_units, bias=bias)
-        self.fc3 = nn.Linear(fc_units, classes, bias=bias)
+        self.layers = nn.ModuleList()
+        self.layers.append(nn.Linear(inp_unit, fc_units, bias=True))
+
+        for i in range(fc_layers-2):
+            self.layers.append(nn.Linear(fc_units, fc_units, bias=True))
+            
+        self.layers.append(nn.Linear(fc_units, 1, bias=True))
+
 
 
     def forward(self, z):
         x = z
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        return torch.sigmoid(self.fc3(x))
+        for i in range(len(self.layers)-1):
+            x = F.relu(self.layers[i](x))
+        return torch.sigmoid(self.layers[len(self.layers)-1](x))
+
+
+
+class CondCritic(nn.Module):
+    def __init__(self, input_feat, n_classes, fc_layers=3, fc_units=400, fc_drop=0, fc_bn=True, fc_nl="relu",
+                gated=False, bias=True, excitability=False, excit_buffer=False):
+        # configurations
+        super().__init__()
+        self.label = "Classifier"
+        self.emb = 2
+        self.label_emb = nn.Embedding(n_classes, self.emb)
+
+        # flatten image to 2D-tensor
+        self.flatten = utils.Flatten()
+
+        # fully connected hidden layers
+        inp_unit = input_feat
+        self.layers = nn.ModuleList()
+        self.layers.append(nn.Linear(inp_unit+self.emb, fc_units, bias=True))
+
+        for i in range(fc_layers-2):
+            self.layers.append(nn.Linear(fc_units, fc_units, bias=True))
+            
+        self.layers.append(nn.Linear(fc_units, 1, bias=True))
+
+        
+
+
+    def forward(self, z, y=None):
+        x = torch.cat((self.label_emb(y), z), 1)
+        for i in range(len(self.layers)-1):
+            x = F.relu(self.layers[i](x))
+        return torch.sigmoid(self.layers[len(self.layers)-1](x))

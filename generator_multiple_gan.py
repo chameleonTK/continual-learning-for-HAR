@@ -30,17 +30,25 @@ class GeneratorMultipleGAN(Replayer):
         self.generators = {}
 
         self.critic_fc_units = critic_fc_units
+        self.critic_fc_layers = critic_fc_layers
+
         self.generator_fc_units = generator_fc_units
+        self.generator_fc_layers = generator_fc_layers
+
         self.generator_activation = generator_activation
         self.noisy = False
 
     def get_model(self):
         if self.model == "gan":
             return GAN(self.input_feat, cuda=self.cuda, device=self.device, 
-                critic_fc_units=self.critic_fc_units, generator_fc_units=self.generator_fc_units, generator_activation=self.generator_activation)
+                critic_fc_units=self.critic_fc_units, generator_fc_units=self.generator_fc_units, 
+                critic_fc_layers=self.critic_fc_layers, generator_fc_layers=self.generator_fc_layers, 
+                generator_activation=self.generator_activation)
 
         return WGAN(self.input_feat, cuda=self.cuda, device=self.device,
-            critic_fc_units=self.critic_fc_units, generator_fc_units=self.generator_fc_units, generator_activation=self.generator_activation)
+            critic_fc_units=self.critic_fc_units, generator_fc_units=self.generator_fc_units, 
+            critic_fc_layers=self.critic_fc_layers, generator_fc_layers=self.generator_fc_layers, 
+            generator_activation=self.generator_activation)
 
     def pre_train_discriminator(self, dataset):
         raise Exception("NO implementaion")

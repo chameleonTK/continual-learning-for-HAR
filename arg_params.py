@@ -64,7 +64,8 @@ def get_parser():
 
     component_params = parser.add_argument_group('Additional Component Parameters')
     parser.add_argument('--self-verify', action='store_false', help="enable self-verifing")
-    parser.add_argument('--oversampling', action='store_false', help="enable oversampling")
+    parser.add_argument('--no-oversampling', action='store_false', dest="oversampling", help="disable oversampling")
+
     parser.add_argument('--solver-ewc', action='store_true', help="enable EWC regularisation")
     parser.add_argument('--solver-distill', action='store_false', help="enable knowledge distilling")
     parser.add_argument('--generator-noise', action='store_false', help="enable instance noise")
@@ -76,9 +77,7 @@ def get_args():
     parser = get_parser()
     args = parser.parse_args()
 
-    # args.data_dir = "../../Data/twor.2009/annotated.feat.ch15"
-
-    
+    args.oversampling = (not args.oversampling)
     
     return args
 

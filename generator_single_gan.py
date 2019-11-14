@@ -28,7 +28,11 @@ class GeneratorSingleGAN(Replayer):
         self.classes = classes
 
         self.critic_fc_units = critic_fc_units
+        self.critic_fc_layers = critic_fc_layers
+
         self.generator_fc_units = generator_fc_units
+        self.generator_fc_layers = generator_fc_layers
+
         self.generator_activation = generator_activation
         
         self.generator = self.get_model()
@@ -37,9 +41,15 @@ class GeneratorSingleGAN(Replayer):
 
     def get_model(self):
         if self.model == "cgan":
-            return CGAN(self.input_feat, self.classes, critic_fc_units=self.critic_fc_units, generator_fc_units=self.generator_fc_units, generator_activation=self.generator_activation)
+            return CGAN(self.input_feat, self.classes, 
+            critic_fc_units=self.critic_fc_units, generator_fc_units=self.generator_fc_units, 
+            critic_fc_layers=self.critic_fc_layers, generator_fc_layers=self.generator_fc_layers, 
+            generator_activation=self.generator_activation)
 
-        return CWGAN(self.input_feat, self.classes, critic_fc_units=self.critic_fc_units, generator_fc_units=self.generator_fc_units, generator_activation=self.generator_activation)
+        return CWGAN(self.input_feat, self.classes, 
+            critic_fc_units=self.critic_fc_units, generator_fc_units=self.generator_fc_units, 
+            critic_fc_layers=self.critic_fc_layers, generator_fc_layers=self.generator_fc_layers, 
+            generator_activation=self.generator_activation)
 
     def save_model(self, path, prod=False):
         models = self.generator.save_model(prod=prod)

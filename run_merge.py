@@ -53,14 +53,25 @@ if __name__ == "__main__":
 
     result_folder = args.results_dir
 
+    # methods = [ 
+    #     ("offline", 0), ("sg-cgan", 0), #("mp-gan", 0), ("mp-wgan", 0), ("sg-cwgan", 0), 
+    #     ("offline", 1), ("sg-cgan", 1), #("mp-gan", 1), ("mp-wgan", 1), ("sg-cwgan", 1), 
+    #     ("offline", 2), ("sg-cgan", 2), #("mp-gan", 2), ("mp-wgan", 2), ("sg-cwgan", 2), 
+    #     ("offline", 3), ("sg-cgan", 3), #("mp-gan", 3), ("mp-wgan", 3), ("sg-cwgan", 3), 
+    #     ("offline", 4), ("sg-cgan", 4), #("mp-gan", 4), ("mp-wgan", 4), ("sg-cwgan", 4), 
+    #     ("offline", 5), ("sg-cgan", 5), #("mp-gan", 5), ("mp-wgan", 5), ("sg-cwgan", 5), 
+    #     ("offline", 6), ("sg-cgan", 6), #("mp-gan", 6), ("mp-wgan", 6), ("sg-cwgan", 6), 
+    # ]
+
     methods = [ 
-        ("offline", 0), ("sg-cgan", 0), #("mp-gan", 0), ("mp-wgan", 0), ("sg-cwgan", 0), 
-        ("offline", 1), ("sg-cgan", 1), #("mp-gan", 1), ("mp-wgan", 1), ("sg-cwgan", 1), 
-        ("offline", 2), ("sg-cgan", 2), #("mp-gan", 2), ("mp-wgan", 2), ("sg-cwgan", 2), 
-        ("offline", 3), ("sg-cgan", 3), #("mp-gan", 3), ("mp-wgan", 3), ("sg-cwgan", 3), 
-        ("offline", 4), ("sg-cgan", 4), #("mp-gan", 4), ("mp-wgan", 4), ("sg-cwgan", 4), 
-        ("offline", 5), ("sg-cgan", 5), #("mp-gan", 5), ("mp-wgan", 5), ("sg-cwgan", 5), 
-        ("offline", 6), ("sg-cgan", 6), #("mp-gan", 6), ("mp-wgan", 6), ("sg-cwgan", 6), 
+        ("offline", 0),
+        ("offline", 1),
+        ("offline", 2),
+        ("offline", 3),
+        ("offline", 4),
+        ("offline", 5),
+        ("offline", 6),
+        ("offline", 7),
     ]
 
     start = time.time()
