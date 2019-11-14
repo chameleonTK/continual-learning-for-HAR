@@ -33,12 +33,13 @@ You could run `run_*.py` for a different experiment (The same arguments can be a
 1. Open anohter terminal then run your model with `--visdom` (only work with `run_plot.py`)
 2. See the interactive report
 
-### Todos
 * implement XdG
 * consider diversity as well as accuracy
     * self-verifying => select samples with probability rather than yes/no result
-    * implement Minibatch or Feature mathcing to avoid mode collapse
+* GAN-ralated
+    * implement Minibatch or Feature mathcing to avoid mode collapse     
     * try Unrolled loss https://arxiv.org/abs/1611.02163
+    * learn from this article [10 Lessons I Learned Training GANs for one Year](https://towardsdatascience.com/10-lessons-i-learned-training-generative-adversarial-networks-gans-for-a-year-c9071159628)
 * automated parameter selection
     * fANOVA
 * try other GANs
