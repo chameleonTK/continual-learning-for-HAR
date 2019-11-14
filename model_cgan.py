@@ -85,8 +85,8 @@ class CGAN(Replayer):
         LongTensor = torch.LongTensor
         
         adversarial_loss = torch.nn.BCELoss()
-        valid = Variable(FloatTensor(x.size(0), 1).fill_(1.0), requires_grad=False).to(self._device())
-        fake = Variable(FloatTensor(x.size(0), 1).fill_(0.0), requires_grad=False).to(self._device())
+        valid = Variable(FloatTensor(x.size(0), 1).fill_(0.9), requires_grad=False).to(self._device())
+        fake = Variable(FloatTensor(x.size(0), 1).fill_(0.1), requires_grad=False).to(self._device())
         
         # this part adopted from https://github.com/9310gaurav/ali-pytorch/blob/master/main.py and https://github.com/soumith/ganhacks
         

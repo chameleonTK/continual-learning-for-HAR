@@ -81,8 +81,8 @@ class GAN(Replayer):
     def train_a_batch(self, x, noise=0):
         Tensor = torch.FloatTensor
         adversarial_loss = torch.nn.BCELoss()
-        valid = Variable(Tensor(x.size(0), 1).fill_(1.0), requires_grad=False).to(self._device())
-        fake = Variable(Tensor(x.size(0), 1).fill_(0.0), requires_grad=False).to(self._device())
+        valid = Variable(Tensor(x.size(0), 1).fill_(0.9), requires_grad=False).to(self._device())
+        fake = Variable(Tensor(x.size(0), 1).fill_(0.1), requires_grad=False).to(self._device())
         
 
         

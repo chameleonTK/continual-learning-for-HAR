@@ -88,8 +88,8 @@ class CWGAN(Replayer):
             _n = Variable(torch.Tensor(x.size()).normal_(0, 0.1 * noise)).to(self._device())
             real_x = real_x + _n
             
-        one = torch.tensor(1.0)
-        mone = torch.tensor(-1.0)
+        one = torch.tensor(0.9)
+        mone = torch.tensor(-0.9)
         
         one = one.to(self._device())
         mone = mone.to(self._device())

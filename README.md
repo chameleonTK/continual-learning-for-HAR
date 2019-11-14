@@ -39,7 +39,10 @@ You could run `run_*.py` for a different experiment (The same arguments can be a
 * GAN-ralated
     * implement Minibatch or Feature mathcing to avoid mode collapse     
     * try Unrolled loss https://arxiv.org/abs/1611.02163
-    * learn from this article [10 Lessons I Learned Training GANs for one Year](https://towardsdatascience.com/10-lessons-i-learned-training-generative-adversarial-networks-gans-for-a-year-c9071159628)
+    * label smoothing https://arxiv.org/abs/1606.03498
+    * TTUR Two Time-Scale Update Rule https://arxiv.org/abs/1706.08500
+        * different learning rates for the generator and discriminator 
+        * 0.0004 for the discriminator and 0.0001 for the generator
 * automated parameter selection
     * fANOVA
 * try other GANs

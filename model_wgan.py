@@ -80,8 +80,8 @@ class WGAN(Replayer):
     def train_a_batch(self, x, noise=0):
 
         # Code from https://github.com/caogang/wgan-gp
-        one = torch.tensor(1.0)
-        mone = torch.tensor(-1.0)
+        one = torch.tensor(0.9)
+        mone = torch.tensor(-0.9)
         
         one = one.to(self._device())
         mone = mone.to(self._device())

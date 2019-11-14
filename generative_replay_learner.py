@@ -255,6 +255,10 @@ class GenerativeReplayLearner():
     def _sample(self, class_index, sample_size):
         x_ = self.generator.sample(class_index, sample_size)
         y_ = torch.LongTensor(list(np.full((sample_size, ), int(class_index))))
+
+        device = self.generator._device()
+        x_ = x_.to(device)
+        y_ = y_.to(device)
         return (x_, y_)
 
     def sample(self, active_classes, sample_size, verbose=True, n=None):
@@ -283,7 +287,8 @@ class GenerativeReplayLearner():
                     x_ = tmpx_
                 else:
                     x_ = torch.cat([x_, tmpx_], dim=0)
-                
+                    x_ = x_.to(device)
+                    
                 if len(x_) > sample_size:
                     x_ = x_.narrow(0, 0, sample_size)
                     break
@@ -294,6 +299,8 @@ class GenerativeReplayLearner():
             if len(x_) < sample_size:
                 tmpx_, tmpy_ = self._sample(class_index, sample_size - len(x_))
                 x_ = torch.cat([x_, tmpx_], dim=0)
+                x_ = x_.to(device)
+                
                 if verbose:
                     print("WARNING: low quality sample on ["+str(class_index)+"]", len(tmpx_))
 
