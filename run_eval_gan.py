@@ -214,8 +214,8 @@ if __name__ == "__main__":
     train_datasets, config, classes_per_task = dataset.split(tasks=args.tasks)
     test_datasets, _, _ = testdata.split(tasks=args.tasks)
 
-    
-    fout = open(result_dir+"gan_score.csv", "w")
+    cmd = "0"
+    fout = open(result_dir+cmd+"gan_score.csv", "w")
     fout.write("class, method, n_real, n_fake, offline_acc_real, offline_acc_fake, is, is_err, mmd, knn_tp, knn_fp, knn_fn, knn_tn\n")
 
     cuda = torch.cuda.is_available()
@@ -223,6 +223,8 @@ if __name__ == "__main__":
     
     args.critic_fc_units = select_hidden_unit(args)
     args.generator_fc_units = select_hidden_unit(args)
+    args.critic_fc_layers = int(cmd)+3
+    args.generator_fc_layers = int(cmd)+3
 
     offline_solver = Classifier(
         input_feat=config['feature'],
@@ -257,7 +259,8 @@ if __name__ == "__main__":
 
         _all_data_index[c] = df
         
-    for g in ["mp-gan", "mp-wgan", "sg-cgan", "sg-cwgan"]:
+    # for g in ["mp-gan", "mp-wgan", "sg-cgan", "sg-cwgan"]:
+    for g in ["sg-cgan"]:
         solver = Classifier(
             input_feat=config['feature'],
             classes=config['classes'],
@@ -266,11 +269,11 @@ if __name__ == "__main__":
             device=device,
         ).to(device)
 
-        model_name = get_model_name(0, g, "solver", "0")
+        model_name = get_model_name(0, g, "solver", cmd)
         solver.load_model(result_dir+model_name)
 
         generator = arg_params.get_generator(g, config, cuda, device, args, init_n_classes=config["classes"])
-        model_name = get_model_name(0, g, "generator", "0")
+        model_name = get_model_name(0, g, "generator", cmd)
         generator.load_model(result_dir+model_name, n_classes=config['classes'])
 
 
