@@ -83,7 +83,7 @@ class GeneratorMultipleGAN(Replayer):
         
         return
 
-    def _run_train(self, train_dataset, iters, batch_size, loss_cbs, target_transform, replayed_dataset=None):
+    def _run_train(self, train_dataset, iters, batch_size, loss_cbs, target_transform, replayed_dataset=None, loss_tracking=None):
 
         iters_left = 1
         cuda = self._is_on_cuda()
@@ -118,7 +118,12 @@ class GeneratorMultipleGAN(Replayer):
                     for loss_cb in loss_cbs:
                         if loss_cb is not None:
                             loss_cb(progress, batch_index, loss_dict, task=class_index)
+                    
+                    
+                    if class_index not in loss_tracking["gan_loss"]:
+                        loss_tracking["gan_loss"][class_index] = []
 
+                    loss_tracking["gan_loss"][class_index].append(loss_dict)
             # Close progres-bar(s)
             progress.close()
         

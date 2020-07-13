@@ -88,11 +88,6 @@ def _generator_training_callback(log, visdom, model, tasks=None, iters_per_task=
         if visdom is None:
             return
 
-        if task not in visdom["gan_loss"]:
-            visdom["gan_loss"][task] = []
-
-        visdom["gan_loss"][task].append({"iter": iteration, "acc": loss_dict})
-
         if (iteration % log == 0) and (visdom is not None):
 
             plot_data = [loss_dict['d_cost'], loss_dict['g_cost']]

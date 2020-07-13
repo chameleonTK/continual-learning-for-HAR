@@ -218,7 +218,7 @@ def result_to_list(identity, results):
 
     return lst
 
-def save_results(result_folder, identity, results):
+def save_results(result_folder, identity, results, loss_tracking):
 
     fname = "_t{task_order}-m{method}{c}_results.csv".format(
         task_order=identity["task_order"],
@@ -247,13 +247,20 @@ def save_results(result_folder, identity, results):
     
     df.to_csv(result_folder+fname, index=False)
     
+    fname = "_t{task_order}-m{method}{c}_loss.json".format(
+        task_order=identity["task_order"],
+        method=identity["method"],
+        c=identity["cmd"])
+
+    with open(fname, 'w') as outfile:
+        json.dump(loss_tracking, outfile)
 
 
 # In[23]:
 
 
 
-def run_model(identity, method, args, config, train_datasets, test_datasets, verbose=False, visdom=None):
+def run_model(identity, method, args, config, train_datasets, test_datasets, verbose=False, visdom=None, loss_tracking=None):
     #try:   
         result_folder = args.results_dir
         m, cmd = method
@@ -334,7 +341,7 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
                 newmodel = model.solver.add_output_units(len(train_dataset.classes))
                 model.set_solver(newmodel, None)
 
-            model.train_solver(None, all_data, None)
+            model.train_solver(None, all_data, None, loss_tracking=loss_tracking)
             result = model.test(None, test_datasets, verbose=verbose)
             results.append(result_to_list(identity, result))
         else: 
@@ -368,14 +375,14 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
                     replayed_dataset = prev_dataset
                 
                 start = time.time()
-                model.train_solver(task, train_dataset, replayed_dataset, rnt=args.rnt)
+                model.train_solver(task, train_dataset, replayed_dataset, rnt=args.rnt, loss_tracking=loss_tracking)
                 training_time = time.time() - start
 
                 identity["solver_training_time"] = training_time
 
                 start = time.time()
                 if (args.generative_model is None) and (args.replay == "generative"):
-                    model.train_generator(task, train_dataset, replayed_dataset)
+                    model.train_generator(task, train_dataset, replayed_dataset, loss_tracking=loss_tracking)
                     
                 training_time = time.time() - start
 
@@ -398,7 +405,7 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
         #     save_model(result_folder, identity, model.generator, "generator")
         
 
-        save_results(result_folder, identity, results)
+        save_results(result_folder, identity, results, loss_tracking)
         
         return model, results
     
@@ -470,7 +477,12 @@ for task_order, classes in enumerate(tasks):
         args = copy.deepcopy(base_args)
 
         visdom = {'env': f"Method: {m}, options: {cmd}", 'graph': "models", "values":[], "gan_loss": {}}
-        model, results = run_model(identity, method, args, config, train_datasets, test_datasets, True, visdom=visdom)
+        loss_tracking = {
+            "solver_loss":{},
+            "gan_loss": {},
+            "accuracy": []
+        }
+        model, results = run_model(identity, method, args, config, train_datasets, test_datasets, True, visdom=visdom, loss_tracking=loss_tracking)
         
         training_time = time.time() - start
         print("")

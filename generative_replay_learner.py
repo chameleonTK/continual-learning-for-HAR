@@ -74,7 +74,7 @@ class GenerativeReplayLearner():
 
         return cb
 
-    def train_solver(self, task, train_dataset, replayed_dataset = None, rnt=0.5):
+    def train_solver(self, task, train_dataset, replayed_dataset = None, rnt=0.5, loss_tracking=None):
         print("=> Train Solver")
         model = self.solver
         iters = self.args.iters
@@ -159,7 +159,13 @@ class GenerativeReplayLearner():
                 
                 total_loss += loss_dict["loss_total"]
 
-            
+            if task not in loss_tracking["solver_loss"]:
+                loss_tracking["solver_loss"][task] = []
+                loss_tracking["accuracy"][task] = []
+
+            loss_tracking["solver_loss"][task].append(total_loss)
+            loss_tracking["accuracy"][task].append(loss_dict["accuracy"])
+
             for loss_cb in loss_cbs:
                 if loss_cb is not None:
                     loss_cb(progress, epoch, {
