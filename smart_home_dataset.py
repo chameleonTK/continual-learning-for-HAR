@@ -10,36 +10,18 @@ from imblearn.over_sampling import SMOTE
 from imblearn.combine import SMOTETomek
 
 class SmartHomeDataset(Dataset):
-    def __init__(self, filename, random_state = 10, rawdata = None, classes = None):
+    def __init__(self, filename, random_state = 10, rawdata = None, classes = None, permu_task_order=False):
         if rawdata is None:
             self.pddata = pd.read_csv(filename).dropna()
         else:
             self.pddata = rawdata
 
-        # self.classes = self.pddata["ActivityName"].unique()
-        if classes is None:    
-            self.classes = [
-                "R1_work_at_computer",
-                "R2_work_at_computer",
-                "R1_sleep",
-                "R2_sleep",
-                "R1_bed_to_toilet",
-                "R2_bed_to_toilet",
-                # "R1_groom",
-                # "R2_groom",
-                # "R1_breakfast",
-                # "R2_breakfast",
+        self.classes = classes
+        if permu_task_order:
+            lst = np.random.permutation(classes)
+            self.classes = lst[0:10]
 
-                "R2_prepare_dinner",
-                "R2_watch_TV",
-                
-                "R2_prepare_lunch",
-                "R1_work_at_dining_room_table",
-                # "Cleaning",
-                # "Wash_bathtub",
-            ]
-        else:
-            self.classes = classes
+        # print("Task order: ", self.classes)
 
         self.pddata = self.pddata[self.pddata['ActivityName'].isin(self.classes)]
         self.labels = self.pddata["ActivityName"].values
@@ -50,24 +32,11 @@ class SmartHomeDataset(Dataset):
 
         self.config = {
             'feature': len(self.pddata.columns) - 1, 
-            # 'size': int(math.sqrt(len(self.pddata.columns) - 1)), 
-            # 'channels': 1, 
             'classes': len(self.classes)
         }
         
 
         self.target_tranform = None
-
-        
-    def permu_task_order(self, classes = None):
-        if classes is not None:
-            self.classes = classes
-        else:
-            lst = np.random.permutation(self.classes)
-            self.classes = lst[0:10]
-
-        print("Task order: ", self.classes)
-        return self.classes
         
 
     def train_test_split(self):        
@@ -108,7 +77,7 @@ class SmartHomeDataset(Dataset):
 
 
         classes = self.classes
-        mapping = dict(zip(classes,range(len(classes))))
+        mapping = dict(zip(classes, range(len(classes))))
 
         pddata = self.pddata.replace({'ActivityName': mapping})
         labels = pddata["ActivityName"]
@@ -158,7 +127,7 @@ class SmartHomeDataset(Dataset):
         return SmartHomeDataset("", rawdata=mpddata, classes=classes)
 
     def detail(classes, train_datasets, test_datasets):
-        print ("\n\n===== Smart Home dataset ======")
+        print ("===== Smart Home dataset ======")
         d = {'Activity Name': [], '#Train': [], "#Test": [], "Total":[]}
         
         cid = {}

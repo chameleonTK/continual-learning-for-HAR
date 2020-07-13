@@ -93,7 +93,8 @@ class ContinualLearner(nn.Module, metaclass=abc.ABCMeta):
                 # -mode (=MAP parameter estimate)
                 self.register_buffer('{}_EWC_prev_task{}'.format(n, "" if self.online else self.EWC_task_count+1),
                                      p.detach().clone())
-                # -precision (approximated by diagonal Fisher Information matrix)
+
+                # -accuracy (approximated by diagonal Fisher Information matrix)
                 if self.online and self.EWC_task_count==1:
                     existing_values = getattr(self, '{}_EWC_estimated_fisher'.format(n))
                     est_fisher_info[n] += self.gamma * existing_values
@@ -114,7 +115,7 @@ class ContinualLearner(nn.Module, metaclass=abc.ABCMeta):
             for task in range(1, self.EWC_task_count+1):
                 for n, p in self.named_parameters():
                     if p.requires_grad:
-                        # Retrieve stored mode (MAP estimate) and precision (Fisher Information matrix)
+                        # Retrieve stored mode (MAP estimate) and accuracy (Fisher Information matrix)
                         n = n.replace('.', '__')
                         mean = getattr(self, '{}_EWC_prev_task{}'.format(n, "" if self.online else task))
                         fisher = getattr(self, '{}_EWC_estimated_fisher{}'.format(n, "" if self.online else task))
@@ -125,7 +126,7 @@ class ContinualLearner(nn.Module, metaclass=abc.ABCMeta):
             # Sum EWC-loss from all parameters (and from all tasks, if "offline EWC")
             return (1./2)*sum(losses)
         else:
-            # EWC-loss is 0 if there are no stored mode and precision yet
+            # EWC-loss is 0 if there are no stored mode and accuracy yet
             return torch.tensor(0., device=self._device())
 
 

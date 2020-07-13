@@ -99,7 +99,7 @@ class GeneratorMultipleGAN(Replayer):
 
                 iters_left -= 1
                 if iters_left==0:
-                    data_loader = iter(utils.get_data_loader(singlelabel_dataset, batch_size, cuda=cuda, drop_last=True))
+                    data_loader = iter(utils.get_data_loader(singlelabel_dataset, min(batch_size, len(singlelabel_dataset)), cuda=cuda, drop_last=True))
                     iters_left = len(data_loader)
 
                 x, y = next(data_loader)                                    #--> sample training data of current task

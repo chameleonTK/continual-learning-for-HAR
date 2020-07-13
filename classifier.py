@@ -144,12 +144,12 @@ class Classifier(ContinualLearner, Replayer):
                 predL = F.cross_entropy(input=y_hat, target=y)
                 loss_cur = predL
 
-            # Calculate training-precision
+            # Calculate training-accuracy
             # Tensor.max() return (values, indices) where indices is argmax
             # Tensor.item() is used to transform Tensor(number) => number
-            precision = (y == y_hat.max(1)[1]).sum().item() / x.size(0)
+            accuracy = (y == y_hat.max(1)[1]).sum().item() / x.size(0)
         else:
-            precision = predL = None
+            accuracy = predL = None
 
         # Train with replayed x
         if x_ is not None:
@@ -214,7 +214,7 @@ class Classifier(ContinualLearner, Replayer):
             'pred': predL.item() if predL is not None else 0,
             'pred_r': predL_r if (x_ is not None) else 0,
             
-            'precision': precision if precision is not None else 0.,
+            'accuracy': accuracy if accuracy is not None else 0.,
         }
 
 

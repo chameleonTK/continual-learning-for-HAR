@@ -94,13 +94,13 @@ class GeneratorSingleGAN(Replayer):
 
             iters_left -= 1
             if iters_left==0:
-                data_loader = iter(utils.get_data_loader(train_dataset, batch_size, cuda=cuda, drop_last=True))
+                data_loader = iter(utils.get_data_loader(train_dataset, min(batch_size, len(train_dataset)), cuda=cuda, drop_last=True))
                 iters_left = len(data_loader)
 
             if replayed_dataset is not None:
                 replay_iters_left -=1
                 if replay_iters_left==0:
-                    replayed_data_loader = iter(utils.get_data_loader(replayed_dataset, batch_size, cuda=cuda, drop_last=True))
+                    replayed_data_loader = iter(utils.get_data_loader(replayed_dataset, min(batch_size, len(replayed_dataset)), cuda=cuda, drop_last=True))
                     replay_iters_left = len(replayed_data_loader)
 
             x, y = next(data_loader)                                    #--> sample training data of current task

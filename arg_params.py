@@ -20,7 +20,7 @@ class IterAction(argparse.Action):
 def get_parser():
     parser = argparse.ArgumentParser('./main.py', description='Run continual learning experiment.')
     parser.add_argument('--seed', type=int, default=10, help='random seed')
-    parser.add_argument('--method', type=str, choices=['generative', 'exact', 'none', "offline"], dest='replay', default='adam', help="method")
+    parser.add_argument('--method', type=str, choices=['generative', 'exact', 'none', "offline"], dest='replay', default='none', help="method")
     parser.add_argument('--generative-model', type=str, help="path to trained generative model")
     parser.add_argument('--output-model-path', type=str,help="path for output")
     parser.add_argument('--results-dir', required=True, type=str,help="path for results")
@@ -40,7 +40,7 @@ def get_parser():
     train_params.add_argument('--g-iters', type=int, default=5000, action=IterAction, help="# iterator to optimize generator")
     train_params.add_argument('--lr-gen', type=float, default=0.001, help="learning rate for generator")
 
-    train_params.add_argument('--batch', type=int, default=5, help="batch-size")
+    train_params.add_argument('--batch', type=int, default=50, help="batch-size")
     train_params.add_argument('--optimizer', type=str, choices=['adam', 'adam_reset', 'sgd'], default='adam')
     train_params.add_argument('--replay-size', type=int, default=500, help="# replayed samples used in each training session")
     train_params.add_argument('--rnt', type=float, default=0.5, help="relative importance of new task")

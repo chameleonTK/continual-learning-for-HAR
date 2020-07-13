@@ -105,70 +105,78 @@ class GenerativeReplayLearner():
         active_classes = self.get_active_classes_index(task)
         print(active_classes)
         
-        iters_left = 1
-        replayed_iters_left = 1
+        
         # Define tqdm progress bar(s)
         progress = tqdm.tqdm(range(1, iters+1))
-        for batch_index in range(1, iters+1):
+        prev_total_loss = float('inf')
 
-        #     # Update # iters left on current data-loader(s) and, if needed, create new one(s)
-            iters_left -= 1
-            replayed_iters_left -= 1
-            if iters_left==0:
-                data_loader = iter(utils.get_data_loader(train_dataset, batch_size, cuda=cuda, drop_last=True))
-                iters_left = len(data_loader)
+        for epoch in range(1, iters+1):
 
-            if (replayed_dataset is not None) and replayed_iters_left==0:
-                replayed_data_loader = iter(utils.get_data_loader(replayed_dataset, batch_size, cuda=cuda, drop_last=True))
-                replayed_iters_left = len(replayed_data_loader)
+            data_loader = iter(utils.get_data_loader(train_dataset, min(len(train_dataset), batch_size), cuda=cuda, drop_last=True))
+            if (replayed_dataset is not None):
+                replayed_data_loader = iter(utils.get_data_loader(replayed_dataset, min(len(replayed_dataset), batch_size), cuda=cuda, drop_last=True))
 
-            x, y = next(data_loader)
-            x, y = x.to(device), y.to(device)
-            
-            scores = None
-            if self.previous_solver is not None:
+            assert(len(data_loader) >= 1)
+
+            total_loss = 0
+            for batch_index in range(1, len(data_loader)+1):
+                x, y = next(data_loader)
+                x, y = x.to(device), y.to(device)
                 
-                with torch.no_grad():
-                    scores = self.previous_solver(x)
-                    scores = scores.cpu()
-                    scores = scores[:, prev_active_classes]
-
-
-            x_ = None
-            y_ = None
-            scores_ = None
-
-            if replayed_dataset is not None:
-                try:
-                    x_, y_ = next(replayed_data_loader)                               
-                    x_, y_ = x_.to(device), y_.to(device)
-                except StopIteration:
-                    continue
-
+                scores = None
                 if self.previous_solver is not None:
+                    
                     with torch.no_grad():
-                        scores_ = self.previous_solver(x_)
-                        scores_ = scores_.cpu()
-                        scores_ = scores_[:, prev_active_classes]
-                         
+                        scores = self.previous_solver(x)
+                        scores = scores.cpu()
+                        scores = scores[:, prev_active_classes]
 
-            if batch_index <= iters:
+
+                x_ = None
+                y_ = None
+                scores_ = None
+
+                if replayed_dataset is not None:
+                    try:
+                        x_, y_ = next(replayed_data_loader)                               
+                        x_, y_ = x_.to(device), y_.to(device)
+                    except StopIteration:
+                        continue
+
+                    if self.previous_solver is not None:
+                        with torch.no_grad():
+                            scores_ = self.previous_solver(x_)
+                            scores_ = scores_.cpu()
+                            scores_ = scores_[:, prev_active_classes]
+                            
                 # Train the main model with this batch
                 loss_dict = model.train_a_batch(x, y, x_=x_, y_=y_, scores=scores, scores_=scores_,
                                                 active_classes=active_classes, task=task, rnt=rnt)
 
-                for loss_cb in loss_cbs:
-                    if loss_cb is not None:
-                        loss_cb(progress, batch_index, loss_dict, task=task)
-
                 
                 if self.eval_cb is not None:
                     self.eval_cb(batch_index, task=task)
+                
+                total_loss += loss_dict["loss_total"]
+
+            
+            for loss_cb in loss_cbs:
+                if loss_cb is not None:
+                    loss_cb(progress, epoch, {
+                        "loss_total": total_loss, 
+                        "accuracy": loss_dict["accuracy"]
+                    }, task=task)
+
+            if epoch % 50 == 0:
+                if prev_total_loss < total_loss or total_loss < 0.001:
+                    print("Early stopping")
+                    break
+
+                prev_total_loss = total_loss
+
 
         # Close progres-bar(s)
         progress.close()
-
-        
         previous_model = copy.deepcopy(model).eval()
         self.previous_solver = previous_model
         
@@ -201,7 +209,7 @@ class GenerativeReplayLearner():
         active_classes = self.get_active_classes_index(task)
         solver.eval()
         
-        d = {'Task': [], "#Test": [], "#Correct":[], 'Precision': []}
+        d = {'Task': [], "#Test": [], "#Correct":[], 'Accuracy': []}
         for t, dataset in enumerate(test_datasets, 1):
             if (task is not None) and (t > task):
                 break
@@ -220,12 +228,12 @@ class GenerativeReplayLearner():
                 total_correct += (predicted == labels).sum().item()
                 total_tested += len(data)
 
-            precision = total_correct / total_tested
+            accuracy = total_correct / total_tested
 
             d["Task"].append(t)
             d["#Test"].append(total_tested)
             d["#Correct"].append(total_correct)
-            d["Precision"].append(precision)
+            d["Accuracy"].append(accuracy)
             
 
         if verbose:
