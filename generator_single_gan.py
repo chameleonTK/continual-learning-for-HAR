@@ -65,14 +65,6 @@ class GeneratorSingleGAN(Replayer):
 
     def forward(self, x, class_index=None):
         raise Exception("NO implementaion")
-
-    def pre_train_discriminator(self, dataset):
-        def target_transform(x):
-            return 0
-
-        self._run_train(dataset, 1000, 5, [], target_transform)
-
-        # return self.generator.pre_train_discriminator(dataset)
     
 
     def _run_train(self, train_dataset, iters, batch_size, loss_cbs, target_transform, replayed_dataset=None, loss_tracking=None):

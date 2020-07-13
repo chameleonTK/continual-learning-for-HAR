@@ -20,7 +20,7 @@ def _solver_loss_cb(log, visdom, model=None, tasks=None, iters_per_task=None, re
             bar.update(1)
 
         # log the loss of the solver (to visdom)
-        if (iteration % 25 == 0) and (visdom is not None):
+        if (iteration % log == 0) and (visdom is not None):
             plot_data = [loss_dict['loss_total']]
 
             i = (task-1)*iters_per_task + iteration
@@ -45,11 +45,11 @@ def _task_loss_cb(model, test_datasets, log, visdom, iters_per_task, vis_name=""
         iteration = (task-1)*iters_per_task + iter
         if (iteration % log == 0) and (visdom is not None):
             loss_dict = model.test(task, test_datasets, verbose=False)
-            while len(loss_dict["Precision"]) < len(test_datasets):
-                loss_dict["Precision"].append(0)
+            while len(loss_dict["Accuracy"]) < len(test_datasets):
+                loss_dict["Accuracy"].append(0)
             
             loss_dict["Task"] = range(len(test_datasets))
-            plot_data = loss_dict["Precision"]
+            plot_data = loss_dict["Accuracy"]
             names = ["task"+str(s+1) for s in loss_dict["Task"]]
             
             if visdom is None:

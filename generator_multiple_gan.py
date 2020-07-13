@@ -50,9 +50,7 @@ class GeneratorMultipleGAN(Replayer):
             critic_fc_layers=self.critic_fc_layers, generator_fc_layers=self.generator_fc_layers, 
             generator_activation=self.generator_activation)
 
-    def pre_train_discriminator(self, dataset):
-        raise Exception("NO implementaion")
-        
+    
     def save_model(self, path, prod=False):
         models = {}
         for class_index in self.generators:

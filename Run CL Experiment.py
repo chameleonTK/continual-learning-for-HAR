@@ -81,10 +81,12 @@ import torch.multiprocessing as mp
 
 
 params = {
-    "--results-dir": "./Results/CASAS/",
+    "--results-dir": "./Results.v2/CASAS/",
     "--data-dir": "casas",
-    "--task-order": "./Results/CASAS/task_orders.txt",
-    "--batch": 1000
+    "--task-order": "./Results.v2/CASAS/task_orders.txt",
+    "--batch": 1024,
+    "--iters": 50,
+    "--g-iters": 50
 }
 
 p = [f"{k} {params[k]}" for k in params]
@@ -100,7 +102,7 @@ print("Arguments")
 for attr, value in args.__dict__.items():
     print("  * ", attr, value)
 
-args.visdom = True
+args.visdom = False
 result_folder = args.results_dir
 
 
@@ -252,7 +254,7 @@ def save_results(result_folder, identity, results, loss_tracking):
         method=identity["method"],
         c=identity["cmd"])
 
-    with open(fname, 'w') as outfile:
+    with open(result_folder+fname, 'w') as outfile:
         json.dump(loss_tracking, outfile)
 
 
@@ -424,7 +426,7 @@ methods = [
     # ("none", 0), 
     # ("exact", 0), 
     ("mp-gan", 0), ("mp-wgan", 0), ("sg-cgan", 0), ("sg-cwgan", 0), 
-#     ("lwf", 0), ("ewc", 0)
+    ("lwf", 0), ("ewc", 0)
 ]
 
 
@@ -476,11 +478,14 @@ for task_order, classes in enumerate(tasks):
         identity["method"] = m
         args = copy.deepcopy(base_args)
 
-        visdom = {'env': f"Method: {m}, options: {cmd}", 'graph': "models", "values":[], "gan_loss": {}}
+        # visdom = {'env': f"Method: {m}, options: {cmd}", 'graph': "models", "values":[], "gan_loss": {}}
+        visdom = None
+
         loss_tracking = {
             "solver_loss":{},
             "gan_loss": {},
-            "accuracy": []
+            "train_accuracy": {},
+            "test_accuracy": {}
         }
         model, results = run_model(identity, method, args, config, train_datasets, test_datasets, True, visdom=visdom, loss_tracking=loss_tracking)
         

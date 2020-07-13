@@ -74,7 +74,7 @@ class GenerativeReplayLearner():
 
         return cb
 
-    def train_solver(self, task, train_dataset, replayed_dataset = None, rnt=0.5, loss_tracking=None):
+    def train_solver(self, task, train_dataset, replayed_dataset = None, test_datasets=None, rnt=0.5, loss_tracking=None):
         print("=> Train Solver")
         model = self.solver
         iters = self.args.iters
@@ -152,19 +152,26 @@ class GenerativeReplayLearner():
                 # Train the main model with this batch
                 loss_dict = model.train_a_batch(x, y, x_=x_, y_=y_, scores=scores, scores_=scores_,
                                                 active_classes=active_classes, task=task, rnt=rnt)
-
-                
-                if self.eval_cb is not None:
-                    self.eval_cb(batch_index, task=task)
                 
                 total_loss += loss_dict["loss_total"]
 
             if task not in loss_tracking["solver_loss"]:
                 loss_tracking["solver_loss"][task] = []
-                loss_tracking["accuracy"][task] = []
+                loss_tracking["train_accuracy"][task] = []
 
             loss_tracking["solver_loss"][task].append(total_loss)
-            loss_tracking["accuracy"][task].append(loss_dict["accuracy"])
+            loss_tracking["train_accuracy"][task].append(loss_dict["accuracy"])
+
+            if test_datasets is not None:
+                test_loss_dict = model.test(task, test_datasets, verbose=False)
+                while len(test_loss_dict["Accuracy"]) < len(test_datasets):
+                    test_loss_dict["Accuracy"].append(0)
+                loss_tracking["test_accuracy"][task].append(test_loss_dict)
+            
+            # if visdom is None:
+            #     return
+
+            # visdom["values"].append({"iter": iteration, "acc": plot_data})
 
             for loss_cb in loss_cbs:
                 if loss_cb is not None:
@@ -189,7 +196,7 @@ class GenerativeReplayLearner():
         if self.solver_ewc:
             model.estimate_fisher(train_dataset, allowed_classes=active_classes)
 
-    def train_generator(self, task, train_dataset, replayed_dataset = None):
+    def train_generator(self, task, train_dataset, replayed_dataset=None, loss_tracking=None):
         print("=> Train Generator")
         model = self.generator
         iters = self.args.g_iters
@@ -204,10 +211,10 @@ class GenerativeReplayLearner():
         cuda = model._is_on_cuda()
         device = model._device()
         
-        model._run_train(train_dataset, iters, batch_size, loss_cbs, target_transform, replayed_dataset=replayed_dataset)
+        model._run_train(train_dataset, iters, batch_size, loss_cbs, target_transform, replayed_dataset=replayed_dataset, loss_tracking=loss_tracking)
 
     def test(self, task, test_datasets, verbose=True):
-        print("=> Test")
+        # print("=> Test")
         solver = self.solver
 
         cuda = solver._is_on_cuda()
@@ -293,7 +300,7 @@ class GenerativeReplayLearner():
                 # Self-verify
                 if self.args.self_verify:
                     tmpx_ = self._verify(tmpx_, tmpy_, active_classes_index)
-                    if len(tmpx_) ==0 and verbose:
+                    if len(tmpx_)==0 and verbose:
                         print("WARNING: your generator cannot generate class"+str(class_index)+" properly")
                         # raise Exception("WARNING: your generator cannot generate class"+str(class_index)+" properly")
 
