@@ -121,7 +121,9 @@ class SmartHomeDataset(Dataset):
         return SmartHomeDataset("", rawdata=filtered, classes=classes)
 
     def merge(self, dataset):
-        mpddata = pd.concat([self.pddata, dataset.pddata], ignore_index=True)
+        dataset.pddata.columns = self.pddata.columns
+        mpddata = pd.concat([self.pddata, dataset.pddata], axis=0, ignore_index=True)
+
         mpddata = mpddata.sample(frac=1).reset_index(drop=True)
         classes = self.classes + dataset.classes
         return SmartHomeDataset("", rawdata=mpddata, classes=classes)

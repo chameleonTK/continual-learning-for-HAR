@@ -19,7 +19,7 @@ class Replayer(nn.Module, metaclass=abc.ABCMeta):
 
         self.noisy = False
         # Replay: temperature for distillation loss (and whether it should be used)
-        self.replay_targets = "hard"  # hard|soft
+        self.replay_targets = "soft"  # hard|soft
         self.KD_temp = 2.
         
 

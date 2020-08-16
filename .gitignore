@@ -6,3 +6,6 @@ Results/_tmp
 **/_tmp
 Results/**/*.model
 Reports/**/*.pdf
+Results*
+
+.ipynb_checkpoints

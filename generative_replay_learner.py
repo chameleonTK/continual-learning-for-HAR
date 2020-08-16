@@ -31,6 +31,8 @@ class GenerativeReplayLearner():
         self.solver_distill = args.solver_distill
 
         self.generator_noise = args.generator_noise
+        self.generator_noise = args.generator_noise
+        self.icarl_examplars = args.icarl_examplars
 
     
     def set_solver(self, solver, previous_solver=None):
@@ -38,6 +40,7 @@ class GenerativeReplayLearner():
         self.solver = solver
         self.solver.ewc = self.solver_ewc
         self.solver.distill = self.solver_distill
+        self.solver.examplars = self.icarl_examplars
         
         self.solver_loss_cbs = [
             cb._solver_loss_cb(
@@ -181,7 +184,7 @@ class GenerativeReplayLearner():
                     }, task=task)
 
             if epoch % 50 == 0:
-                if prev_total_loss < total_loss or total_loss < 0.001:
+                if prev_total_loss < total_loss or total_loss < 0.01:
                     print("Early stopping")
                     break
 
@@ -193,8 +196,28 @@ class GenerativeReplayLearner():
         previous_model = copy.deepcopy(model).eval()
         self.previous_solver = previous_model
         
+
         if self.solver_ewc:
             model.estimate_fisher(train_dataset, allowed_classes=active_classes)
+
+        if self.icarl_examplars:
+            # EXEMPLARS: update exemplar sets
+            exemplars_per_class = int(np.floor(model.memory_budget / (classes_per_task*task)))
+
+            # reduce examplar-sets
+            model.reduce_exemplar_sets(exemplars_per_class)
+            # for each new class trained on, construct examplar-set
+            new_classes = list(range(classes_per_task*(task-1), classes_per_task*task))
+            for idx, class_id in enumerate(new_classes):
+                # create new dataset containing only all examples of this class
+                class_dataset = train_dataset.filter([idx])
+                class_dataset.set_target_tranform(self.target_transform())
+
+                # based on this dataset, construct new exemplar-set for this class
+                model.construct_exemplar_set(dataset=class_dataset, n=exemplars_per_class)
+
+            model.compute_means = True
+
 
     def train_generator(self, task, train_dataset, replayed_dataset=None, loss_tracking=None):
         print("=> Train Generator")
@@ -233,9 +256,16 @@ class GenerativeReplayLearner():
             for data, labels in data_loader:
                 data, labels = data.to(device), labels.to(device)  
                 with torch.no_grad():
-                    scores = solver(data)
-                    scores = scores[:, active_classes]
-                    _, predicted = torch.max(scores, 1)
+                    if solver.examplars:
+                        predicted = solver.classify_with_exemplars(data)
+                        # print("*********")
+                        # print(scores)
+                        # print("=======")
+                        # print(solver(data))
+                    else:
+                        scores = solver(data)
+                        scores = scores[:, active_classes]
+                        _, predicted = torch.max(scores, 1)
                 
                 
                 total_correct += (predicted == labels).sum().item()

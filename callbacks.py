@@ -20,6 +20,7 @@ def _solver_loss_cb(log, visdom, model=None, tasks=None, iters_per_task=None, re
             bar.update(1)
 
         # log the loss of the solver (to visdom)
+        
         if (iteration % log == 0) and (visdom is not None):
             plot_data = [loss_dict['loss_total']]
 

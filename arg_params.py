@@ -69,6 +69,9 @@ def get_parser():
     parser.add_argument('--solver-ewc', action='store_true', help="enable EWC regularisation")
     parser.add_argument('--solver-distill', action='store_false', help="enable knowledge distilling")
     parser.add_argument('--generator-noise', action='store_false', help="enable instance noise")
+    
+    parser.add_argument('--icarl-examplars', action='store_false', help="enable iCarl")
+
 
     return parser
 

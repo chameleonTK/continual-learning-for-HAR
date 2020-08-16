@@ -6,11 +6,10 @@ import utils
 from torch import optim
 from torch import nn
 import numpy as np
+from exemplar_handler import ExemplarHandler
 
 
-class Classifier(ContinualLearner, Replayer):
-    # TODO: consider paper >>  icarl: Incremental classifier and representation learning.
-    
+class Classifier(ContinualLearner, Replayer, ExemplarHandler):
     def __init__(self, input_feat, classes,
                  fc_layers=3, fc_units=1000, lr=0.001,
                  cuda=False, device="cpu"):
@@ -85,6 +84,7 @@ class Classifier(ContinualLearner, Replayer):
                 lb.weight.data = new_w.clone().detach().requires_grad_(True).to(self.device)
                 lb.bias.data = new_b.clone().detach().requires_grad_(True).to(self.device)
         
+        newsolver.exemplar_sets = model.exemplar_sets
         return newsolver
 
     def forward(self, x):
@@ -96,6 +96,13 @@ class Classifier(ContinualLearner, Replayer):
         # x = (self.fc1(x))
         # x = F.relu(self.fc2(x))
         # return self.fc3(x)
+
+    def feature_extractor(self, x):
+        # use the 2nd last layer of the classifier as feature
+        x = self.flatten(x)
+        for i in range(len(self.layers)-1):
+            x = F.relu(self.layers[i](x))
+        return x
 
     def set_activation(self, nl):
         if isinstance(nl, nn.Module):
@@ -121,14 +128,12 @@ class Classifier(ContinualLearner, Replayer):
         if x is not None:
             y_hat = self(x)
             y_hat = y_hat[:, active_classes]
-            if self.distill and scores is not None:
-
-
-                
+            if self.distill and scores is not None:                
                 classes_per_task = int(y_hat.size(1) / task)
                 y_tmp = y - (task-1)*classes_per_task
 
                 binary_targets = np.zeros(shape=[len(y), classes_per_task], dtype='float32')
+                
                 binary_targets[range(len(y)), y_tmp.cpu()] = 1.0
                 binary_targets = torch.from_numpy(binary_targets)
 

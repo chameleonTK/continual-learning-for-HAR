@@ -1,7 +1,31 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+# coding: utf-8
+
+import numpy as np
+import pandas as pd
+import gc
+
+import matplotlib.pyplot as plt
+
+import warnings
+warnings.filterwarnings("ignore")
+
+# # Load Data and code
+# from google.colab import drive
+# drive.mount('/content/drive')
+
+# cd "/content/drive/My Drive/continual-learning"
+# !git clone https://github.com/chameleonTK/continual-learning-for-HAR.git src
+# cd "src"
+# !pip install visdom
+
+
 import torch
 import numpy as np
 from smart_home_dataset import SmartHomeDataset
+from examplar_dataset import ExemplarDataset
+from torch.utils.data import ConcatDataset
+
 from classifier import Classifier
 from torch import optim
 import utils
@@ -17,6 +41,119 @@ import copy
 import torch.multiprocessing as mp
 
 
+# # Get parameters
+
+
+params = {
+    "--results-dir": "./Results.v2/CASAS/",
+    "--data-dir": "casas",
+    "--task-order": "./Results.v2/CASAS/task_orders.txt",
+    "--batch": 1024,
+    "--iters": 20,
+    "--g-iters": 20
+}
+
+p = [f"{k} {params[k]}" for k in params]
+p = " ".join(p)
+
+
+
+parser = arg_params.get_parser()
+args = parser.parse_args(p.split())
+print("Arguments")
+for attr, value in args.__dict__.items():
+    print("  * ", attr, value)
+
+args.visdom = False
+result_folder = args.results_dir
+
+
+
+
+
+
+# # Get Dataset
+
+
+def select_dataset(args, classes=None):
+    if args.data_dir == "pamap":
+        default_classes = [
+            'lying', 
+            'sitting', 
+            'standing', 
+            'ironing', 
+            'vacuum cleaning', 
+            'ascending stairs', 
+            'walking', 
+            'descending stairs', 
+            'cycling', 
+            'running'
+        ]
+
+        data_dir = "./Dataset/PAMAP2/pamap.feat"
+
+    elif args.data_dir == "dsads":
+        default_classes = [
+            "sitting",
+            "standing",
+            "lying on back side",
+            "lying on right side",
+            "ascending stairs",
+            "descending stairs",
+            "exercising on a stepper",
+            "rowing",
+            "jumping",
+            "playing basketball"
+        ]
+
+        data_dir = "./Dataset/DSADS/dsads.feat"
+
+
+    elif args.data_dir == "housea":
+        default_classes = ['A0', 'A1', 'A2', 'A3', 'A4', 'A5'] #skip A6
+        args.tasks = 3
+        data_dir = "./Dataset/House/HouseA.feat"
+
+    elif args.data_dir == "casas":
+        default_classes = [
+            "R1_work_at_computer",
+            "R2_work_at_computer",
+            "R1_sleep",
+            "R2_sleep",
+            "R1_bed_to_toilet",
+            "R2_bed_to_toilet",
+
+            "R2_prepare_dinner",
+            "R2_watch_TV",
+            
+            "R2_prepare_lunch",
+            "R1_work_at_dining_room_table",
+        ]
+        data_dir = "./Dataset/twor.2009/annotated.feat.ch1"
+    else:
+        raise Exception("Unknow dataset")
+    
+    if classes is None:
+        classes = default_classes
+        
+    return SmartHomeDataset(data_dir, classes=classes)
+
+
+
+tasks = []
+if args.task_order is not None:
+    ft = open(args.task_order)
+    tasks = [line.strip().split(";") for line in ft]
+
+
+
+# tasks
+
+
+# # Train a model
+
+
+
 def result_to_list(identity, results):
     lst = []
     for idx, session in enumerate(results["Task"]):
@@ -28,68 +165,56 @@ def result_to_list(identity, results):
             results["Task"][idx],
             results["#Test"][idx],
             results["#Correct"][idx],
-            results["Precision"][idx],
+            results["Accuracy"][idx],
             identity["solver_training_time"],
             identity["generator_training_time"],
         ])
 
     return lst
 
-def save_order(result_folder, task_order, tasks):
-    if task_order==0:
-        fout = open(result_folder+"task_orders.txt", "w")
-    else:
-        fout = open(result_folder+"task_orders.txt", "a")
+def save_results(result_folder, identity, results, loss_tracking):
 
-    fout.write(";".join(tasks)+"\n")
-    fout.close()
-
-def save_model(result_folder, identity, model, model_type):
-    name = "t{task_order}-m{method}{c}-{type}.model".format(
-        task_order=identity["task_order"],
-        method=identity["method"],
-        type=model_type,
-        c=identity["cmd"])
-
-    model.save_model(result_folder+name)
-
-
-def save_results(result_folder, identity, results):
-
-    fname = "_t{task_order}-m{method}{c}_results.tmp".format(
+    fname = "_t{task_order}-m{method}{c}_results.csv".format(
         task_order=identity["task_order"],
         method=identity["method"],
         c=identity["cmd"])
-
-    fout = open(result_folder+fname, "w")
     
-    for _ in results:
-        for row in _:
-            row = [str(r) for r in row]
-            fout.write(",".join(row)+"\n")
-    fout.close()
+    o = None
+    for r in results:
+        if o is None:
+            o = r
+        else:
+            o = o + r
 
-def get_g_iter(method, cmd=None):
-    if method in ["sg-cgan", "sg-cwgan"]:
-        return 5000
-    else:
-        return 1000
+    df = pd.DataFrame(o, columns=[
+        "Task Sequence Idx", 
+        "Method",
+        "Method Options",
+        "Training Session",
+        "Task",
+        "#Test",
+        "#Correct",
+        "Accuracy",
+        "Solver Training Time",
+        "Generator Training Time",
+    ])
+    
+    df.to_csv(result_folder+fname, index=False)
+    
+    fname = "_t{task_order}-m{method}{c}_loss.json".format(
+        task_order=identity["task_order"],
+        method=identity["method"],
+        c=identity["cmd"])
 
-# Havent been used
-# def get_hidden_unit(args):
-#     if args.data_dir == "pamap":
-#         return 1000
-#     elif args.data_dir == "dsads":
-#         return 2000
-#     elif args.data_dir == "housea":
-#         return 100
-#     else:
-#         return 500
+    with open(result_folder+fname, 'w') as outfile:
+        json.dump(loss_tracking, outfile)
 
-def run_model(identity, method, args, config, train_datasets, test_datasets, verbose=False, visdom=None):
+
+
+
+def run_model(identity, method, args, config, train_datasets, test_datasets, verbose=False, visdom=None, loss_tracking=None):
     #try:   
         result_folder = args.results_dir
-
         m, cmd = method
 
         results = []
@@ -109,15 +234,27 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
         if m == "lwf":
             args.solver_distill = True
             args.solver_ewc = False
+            
         elif m== "ewc":
             args.solver_distill = False
             args.solver_ewc = True
+
+        elif m== "examplars":
+            args.icarl_examplars=True
+            args.replay = "examplars"
+            args.solver_distill = True
+            args.solver_ewc = False
+            
         elif m in ["none", "exact", "offline"]:
             args.solver_distill = False
             args.solver_ewc = False
 
         identity["cmd"] = str(cmd)
-        print(args)
+        
+        for attr, value in args.__dict__.items():
+            if attr in []:
+                print("  * ", attr, value)
+        
 
         model = GenerativeReplayLearner(args, 2, verbose=verbose, visdom=visdom)
         
@@ -162,7 +299,7 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
                 newmodel = model.solver.add_output_units(len(train_dataset.classes))
                 model.set_solver(newmodel, None)
 
-            model.train_solver(None, all_data, None)
+            model.train_solver(None, all_data, None, loss_tracking=loss_tracking)
             result = model.test(None, test_datasets, verbose=verbose)
             results.append(result_to_list(identity, result))
         else: 
@@ -175,34 +312,42 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
                 if task>1:
                     if model.generator is not None:
                         model.generator.classes += len(train_dataset.classes)
+                        
                     newmodel = model.solver.add_output_units(len(train_dataset.classes))
                     model.set_solver(newmodel, model.solver)
 
                 active_classes_index = model.get_active_classes_index(task)
 
                 replayed_dataset = None
+                exemplar_dataset = None
                 if args.replay == "generative":
 
                     if args.replay_size <= 1:
-                        # when replay_size in [0, 1]; #samples == replay_size * len(train_dataset)
+                        # when replay_size in [0, 1]; # samples == replay_size * len(train_dataset)
                         replayed_dataset = model.sample(prev_active_classes, 2*len(train_dataset), n=args.replay_size*len(train_dataset))
                     else:
                         # otherwise; #samples == replay_size * len(active_classes_index)
                         replayed_dataset = model.sample(prev_active_classes, args.replay_size)
 
-
                 elif args.replay == "exact":
                     replayed_dataset = prev_dataset
-                
+
+                elif args.replay == "examplars":
+                    if len(model.solver.exemplar_sets)>0:
+                        exemplar_dataset = ExemplarDataset(model.solver.exemplar_sets, prev_active_classes)
+                        exemplar_dataset.classes = []
+                        train_dataset = train_dataset.merge(exemplar_dataset)
+
                 start = time.time()
-                model.train_solver(task, train_dataset, replayed_dataset, rnt=args.rnt)
+                model.train_solver(task, train_dataset, replayed_dataset, rnt=args.rnt, loss_tracking=loss_tracking)
                 training_time = time.time() - start
 
                 identity["solver_training_time"] = training_time
 
                 start = time.time()
                 if (args.generative_model is None) and (args.replay == "generative"):
-                    model.train_generator(task, train_dataset, replayed_dataset)
+                    model.train_generator(task, train_dataset, replayed_dataset, loss_tracking=loss_tracking)
+                    
                 training_time = time.time() - start
 
                 identity["generator_training_time"] = training_time
@@ -224,117 +369,93 @@ def run_model(identity, method, args, config, train_datasets, test_datasets, ver
         #     save_model(result_folder, identity, model.generator, "generator")
         
 
-        save_results(result_folder, identity, results)
-        return model
+        save_results(result_folder, identity, results, loss_tracking)
+        
+        return model, results
+    
     #except Exception as e:
     #    print("ERROR:", e)
 
     #print("DONE task order", identity["task_order"])
+    
 
 
-def clearup_tmp_file(result_folder, ntask, methods, delete=True):
 
-    fresult = open(result_folder+"results.txt", "w")
-    fresult.write("task_order, method, cmd, train_session, task_index, no_of_test, no_of_correct_prediction, accuracy, solver_training_time, generator_training_time\n")
- 
-    for task_order in range(ntask):
-        for method in methods:
-            m, cmd = method
-
-            fname = "_t{task_order}-m{method}{c}_results.tmp".format(
-                task_order=task_order,
-                method=m,
-                c=str(cmd))
-
-            try:
-                fo = open(result_folder+fname)
-                for line in fo:
-                    fresult.write(line)
-                fo.close()
-
-                if delete:
-                    os.remove(result_folder+fname)
-            except Exception as e:
-                print(e)
-
-    fresult.close()
+methods = [ 
+    # ("examplars", 0), 
+    # ("none", 0), 
+    ("exact", 0), 
+    # ("mp-gan", 0), ("mp-wgan", 0), ("sg-cgan", 0), ("sg-cwgan", 0), 
+    # ("lwf", 0), ("ewc", 0)
+]
 
 
 
 
-if __name__ == "__main__":
+
+start = time.time()
+tasks = [tasks[0]]
+for task_order, classes in enumerate(tasks):
+    
+    print(f"=== IDX {task_order} ===")
+    base_dataset = select_dataset(args, classes)
+    
+    identity = {
+        "task_order": None,
+        "method": None,
+        "train_session": None,
+        "task_index": None,
+        "no_of_test": None,
+        "no_of_correct_prediction": None,
+        "accuracy": None,
+        "solver_training_time": None,
+        "generator_training_time": None,
+    }
 
 
+    identity["task_order"] = task_order
+    traindata, testdata = base_dataset.train_test_split()
 
-    methods = [ 
-        ("offline", 0), 
-        ("none", 0), ("exact", 0), 
-        ("mp-gan", 0), ("mp-wgan", 0), ("sg-cgan", 0), ("sg-cwgan", 0), 
-        ("lwf", 0), 
-        ("ewc", 0)
-    ]
+    dataset = traindata
+    # if args.oversampling:
+    #     dataset = traindata.resampling()
 
-    jobs = []
-    pool = mp.Pool()
-    start = time.time()
-    ntask = 10
+    train_datasets, config, classes_per_task = dataset.split(tasks=args.tasks)
+    test_datasets, _, _ = testdata.split(tasks=args.tasks)
+
+    # Check distribution of label
+    # for d in dataset.pddata["ActivityName"].unique():
+    #     x = dataset.pddata
+    #     print(d, len(x[x["ActivityName"]==d]))
+
+    print("******* Run ", task_order, "*******")
+    print("\n")
 
     base_args = args
-    for task_order in [0]:
+    for method in methods:
+        m, cmd = method
+        identity["method"] = m
+        args = copy.deepcopy(base_args)
 
-        identity = {
-            "task_order": None,
-            "method": None,
-            "train_session": None,
-            "task_index": None,
-            "no_of_test": None,
-            "no_of_correct_prediction": None,
-            "accuracy": None,
-            "solver_training_time": None,
-            "generator_training_time": None,
+        # visdom = {'env': f"Method: {m}, options: {cmd}", 'graph': "models", "values":[], "gan_loss": {}}
+        visdom = None
+
+        loss_tracking = {
+            "solver_loss":{},
+            "gan_loss": {},
+            "train_accuracy": {},
+            "test_accuracy": {}
         }
+        model, results = run_model(identity, method, args, config, train_datasets, test_datasets, True, visdom=visdom, loss_tracking=loss_tracking)
         
-        
-        identity["task_order"] = task_order
+        training_time = time.time() - start
+        print("")
+        print(f"Training Time[{m}]:", training_time)
+    break
 
-        if args.task_order is None:
-            save_order(result_folder, task_order, base_dataset.classes)
-        
-        traindata, testdata = base_dataset.train_test_split()
-
-        dataset = traindata
-        if args.oversampling:
-            dataset = traindata.resampling()
-
-        train_datasets, config, classes_per_task = dataset.split(tasks=args.tasks)
-        test_datasets, _, _ = testdata.split(tasks=args.tasks)
-
-        # Check distribution of label
-        # for d in dataset.pddata["ActivityName"].unique():
-        #     x = dataset.pddata
-        #     print(d, len(x[x["ActivityName"]==d]))
-        
-
-        # for d in train_datasets:
-        #     print(d.pddata["ActivityName"].unique())
-
-        print("******* Run ",task_order,"*******")
-        print("\n")
-
-        for method in methods:
-            m, cmd = method
-            identity["method"] = m
-            args = copy.deepcopy(base_args)
-            
-            args.g_iters = get_g_iter(m, None)
-            run_model(identity, method, args, config, train_datasets, test_datasets, True)
-            # pool.apply_async(run_model, args=(identity, method, args, config, train_datasets, test_datasets, False))
-            
-    pool.close()
-    pool.join()
+training_time = time.time() - start
+print("Overall Training Time:", training_time)
+print()
 
 
-    training_time = time.time() - start
-    print(training_time)
 
-    # clearup_tmp_file(result_folder, ntask, methods)
