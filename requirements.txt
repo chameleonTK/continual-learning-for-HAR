@@ -10,7 +10,7 @@ lmdb==0.95
 matplotlib
 numpy
 pandas
-Pillow==8.1.1
+Pillow==9.0.0
 pyparsing==2.4.0
 python-dateutil==2.8.0
 pytz==2019.1
